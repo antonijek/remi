@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Remi 51 — kartaška igra</title>
+  <meta name="description" content="Remi 51 online protiv računara — besplatno, bez registracije. Dva špila, džokeri, otvaranje sa 51.">
+  <meta name="theme-color" content="#0d1f17">
+  <link rel="stylesheet" href="./remi.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Remi</h1>
+    <div class="contract">
+      <b id="title">Remi 51</b>
+      <span id="dealInfo"></span>
+    </div>
+    <div class="top-buttons">
+      <button id="sheetBtn" class="icon-btn" aria-label="Rezultati" title="Rezultati">▦</button>
+      <button id="menuBtn" class="icon-btn" aria-label="Meni" title="Meni">☰</button>
+    </div>
+  </header>
+
+  <main class="room">
+    <div class="table" aria-hidden="true"></div>
+    <section class="seat seat-top" data-seat="top"></section>
+    <section class="seat seat-left" data-seat="left"></section>
+    <section class="seat seat-right" data-seat="right"></section>
+
+    <section class="center">
+      <div class="piles">
+        <div class="pile-box"><div id="stock" class="pile-slot"></div><span id="stockCount"></span></div>
+        <div class="pile-box"><div id="discardPile" class="pile-slot"></div><span>gomila</span></div>
+      </div>
+      <div id="melds" class="melds" aria-label="Kombinacije na stolu"></div>
+      <div id="toast" class="toast" role="status"></div>
+    </section>
+
+    <section class="seat seat-me" data-seat="me"></section>
+    <div id="staged" class="staged"></div>
+  </main>
+
+  <footer class="hand-row">
+    <div class="side-left"><p id="hint" class="hint"></p></div>
+    <div id="myHand" class="hand" aria-label="Vaše karte"></div>
+    <div id="actions" class="actions"></div>
+  </footer>
+
+  <dialog id="menu">
+    <h2>Meni</h2>
+    <label>Broj igrača
+      <select id="playersSel">
+        <option value="2">2 (vi + 1 računar)</option>
+        <option value="3">3 (vi + 2 računara)</option>
+        <option value="4" selected>4 (vi + 3 računara)</option>
+      </select>
+    </label>
+    <label>Protivnici
+      <select id="levelSel">
+        <option value="easy">Početnici</option>
+        <option value="medium" selected>Iskusni</option>
+      </select>
+    </label>
+    <div class="dialog-buttons">
+      <button id="newGameBtn" class="btn primary">Nova igra</button>
+      <a class="btn" href="./pravila.html">Pravila</a>
+      <button id="closeMenuBtn" class="btn">Zatvori</button>
+    </div>
+  </dialog>
+
+  <dialog id="dealEnd">
+    <h2 id="dealEndTitle"></h2>
+    <table class="result">
+      <thead><tr><th></th><th>Partija</th><th>Ukupno</th></tr></thead>
+      <tbody id="dealEndBody"></tbody>
+    </table>
+    <p id="dealEndNote" class="note"></p>
+    <div class="dialog-buttons">
+      <button id="nextDealBtn" class="btn primary">Sledeća partija</button>
+    </div>
+  </dialog>
+
+  <dialog id="sheet" class="sheet-dialog">
+    <h2>Rezultati</h2>
+    <div class="sheet-scroll"><table class="result" id="sheetTable"></table></div>
+    <div class="dialog-buttons"><button id="closeSheetBtn" class="btn primary">Zatvori</button></div>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

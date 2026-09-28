@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pravila remija — kako se igra Remi 51</title>
+  <meta name="description" content="Pravila remija 51: dva špila i džokeri, otvaranje sa 51 poen, nizovi i kompleti, dopisivanje, zamena džokera i bodovanje.">
+  <link rel="stylesheet" href="./remi.css">
+  <style>
+    body { display: block; height: auto; overflow: auto; }
+    .rules { max-width: 720px; margin: 0 auto; padding: 16px; line-height: 1.55; }
+    .rules table { border-collapse: collapse; margin: 8px 0 16px; width: 100%; }
+    .rules th, .rules td { border: 1px solid rgba(255,255,255,.25); padding: 6px 10px; text-align: left; vertical-align: top; }
+    .rules a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="rules">
+    <p><a href="./">← Nazad na igru</a></p>
+    <h1>Pravila remija (Remi 51)</h1>
+    <p>Igra se sa dva špila od 52 karte i 4 džokera (ukupno 108 karata), u 2 do 4 igrača. Igrač posle delioca dobija 15 karata, a ostali po 14. Cilj je osloboditi se svih karata.</p>
+
+    <h2>Potez</h2>
+    <p>Na početku poteza vučete jednu kartu, sa špila ili gornju kartu sa gomile. Zatim možete da spuštate kombinacije i dopisujete. Potez završavate odbacivanjem jedne karte na gomilu. Igrač sa 15 karata počinje bez vučenja, odmah odbacivanjem.</p>
+
+    <h2>Kombinacije</h2>
+    <table>
+      <tr><th>Niz</th><td>3 ili više karata iste boje redom, npr. 5♥ 6♥ 7♥. Kec može na početak (A-2-3) ili na kraj (Q-K-A), ali niz ne prelazi preko keca (K-A-2 nije dozvoljeno).</td></tr>
+      <tr><th>Komplet</th><td>3 ili 4 karte istog broja u različitim bojama, npr. 9♠ 9♥ 9♦.</td></tr>
+      <tr><th>Džoker</th><td>Menja bilo koju kartu. U jednoj kombinaciji može biti najviše jedan džoker.</td></tr>
+    </table>
+
+    <h2>Otvaranje</h2>
+    <p>Prvi put spuštate karte samo ako vaše kombinacije zajedno vrede najmanje <b>51 poen</b>. To je otvaranje. Karte 2 do 9 vrede koliko piše na njima, a 10, J, Q, K i kec po 10 (kec u nizu A-2-3 vredi 1). Džoker vredi kao karta koju menja.</p>
+    <p>Kartu sa gomile pre otvaranja smete uzeti samo ako se sa njom odmah otvorite. Ako to ipak ne uspete, vratite je na gomilu.</p>
+
+    <h2>Posle otvaranja</h2>
+    <ul>
+      <li>Spuštate nove kombinacije bez ograničenja u poenima.</li>
+      <li>Dopisujete karte na bilo koju kombinaciju na stolu, i svoju i tuđu.</li>
+      <li>Džokera sa stola uzimate tako što stavite pravu kartu koju on menja.</li>
+      <li>Uvek mora da vam ostane bar jedna karta za odbacivanje. Džoker se ne odbacuje.</li>
+    </ul>
+
+    <h2>Bodovanje</h2>
+    <table>
+      <tr><th>Ko završi (odbaci poslednju kartu)</th><td>−40</td></tr>
+      <tr><th>Remi iz ruke (otvori se i završi u istom potezu)</th><td>−80, a ostali plaćaju duplo</td></tr>
+      <tr><th>Otvoren igrač</th><td>zbir karata u ruci (džoker 20)</td></tr>
+      <tr><th>Neotvoren igrač</th><td>100</td></tr>
+    </table>
+    <p>Igra se dok neko ne dostigne 501 poen. Pobeđuje igrač sa najmanje poena.</p>
+    <p class="note">Remi ima mnogo varijanti. Ovde je opisana najčešća varijanta „Remi 51“ sa Balkana.</p>
+    <p><a class="btn primary" href="./">Igraj remi</a></p>
+  </main>
+</body>
+</html>
