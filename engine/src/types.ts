@@ -75,6 +75,9 @@ export interface RemiState {
   history: DealResult[];
   winners: number[];
   lastAction: string | null;
+  /** Javno: šta je koji igrač u ovoj partiji uzeo sa gomile / odbacio. */
+  pickups: CardId[][];
+  discardsBy: CardId[][];
 }
 
 export interface PlayerView {
@@ -98,4 +101,6 @@ export interface PlayerView {
   winners: number[];
   lastAction: string | null;
   openingPoints: number;
+  pickups: CardId[][];
+  discardsBy: CardId[][];
 }

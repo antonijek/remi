@@ -100,7 +100,9 @@ export function swapJoker(meld: Meld, card: Card): { cards: MeldCard[]; joker: C
   if (meld.kind === 'run') {
     if (card.rank !== jmc.rank || card.suit !== jmc.suit) return null;
   } else {
-    // u kompletu džoker menja bilo koju boju koja nedostaje
+    // U kompletu se džoker uzima samo iz PUNOG kompleta (3 prave karte + džoker),
+    // jer je tek tada jasno koju boju menja (zoki.com, mycity.rs).
+    if (meld.cards.length < 4) return null;
     if (card.rank !== jmc.rank) return null;
     if (meld.cards.some(mc => !mc.card.joker && mc.suit === card.suit)) return null;
   }

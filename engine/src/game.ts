@@ -10,7 +10,8 @@ import { buildMeld, extendMeld, meldPoints, swapJoker } from './melds.js';
 
 export const HAND_SIZE = 14;
 export const WIN_POINTS = -40;
-export const HAND_REMI_POINTS = -80;
+// −140 i ostalima duplo: zoki.com i mycity.rs (forestrummy navodi −80 — manjina)
+export const HAND_REMI_POINTS = -140;
 export const UNOPENED_POINTS = 100;
 
 export class RemiError extends Error {}
@@ -59,6 +60,8 @@ export class RemiGame {
       history: [],
       winners: [],
       lastAction: null,
+      pickups: Array.from({ length: n }, () => []),
+      discardsBy: Array.from({ length: n }, () => []),
     };
     this.startDeal(true);
   }
@@ -66,6 +69,8 @@ export class RemiGame {
   static fromState(state: RemiState, opts: RemiOptions = {}): RemiGame {
     const g = new RemiGame({ ...opts, players: state.playerCount });
     g.state = structuredClone(state);
+    g.state.pickups ??= Array.from({ length: state.playerCount }, () => []);
+    g.state.discardsBy ??= Array.from({ length: state.playerCount }, () => []);
     return g;
   }
 
@@ -96,6 +101,8 @@ export class RemiGame {
       winners: s.winners,
       lastAction: s.lastAction,
       openingPoints: this.openingPoints,
+      pickups: s.pickups,
+      discardsBy: s.discardsBy,
     });
   }
 
@@ -126,6 +133,7 @@ export class RemiGame {
     // Pre otvaranja: uzeta karta MORA da uđe u otvaranje u ovom potezu.
     s.tookDiscard = s.opened[p] ? null : card.id;
     s.takenCard = card.id;
+    s.pickups[p].push(card.id);
     s.phase = 'PLAY';
     s.lastAction = `take:${p}:${card.id}`;
     return structuredClone(card);
@@ -139,6 +147,7 @@ export class RemiGame {
     const i = s.hands[p].findIndex(c => c.id === s.tookDiscard);
     if (i < 0) throw new RemiError('Uzeta karta je već iskorišćena');
     s.discard.push(s.hands[p].splice(i, 1)[0]);
+    s.pickups[p].pop();
     s.tookDiscard = null;
     s.takenCard = null;
     s.phase = 'DRAW';
@@ -242,6 +251,7 @@ export class RemiGame {
     }
     s.hands[p].splice(i, 1);
     s.discard.push(card);
+    s.discardsBy[p].push(card.id);
     s.lastAction = `discard:${p}:${card.id}`;
     if (s.hands[p].length === 0) {
       this.endDeal(p, !s.openedAtTurnStart);
@@ -280,6 +290,8 @@ export class RemiGame {
     s.opened = Array(n).fill(false);
     s.tookDiscard = null;
     s.takenCard = null;
+    s.pickups = Array.from({ length: n }, () => []);
+    s.discardsBy = Array.from({ length: n }, () => []);
     s.turn = starter;
     s.openedAtTurnStart = false;
     // igrač sa 15 karata počinje odbacivanjem

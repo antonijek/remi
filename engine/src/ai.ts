@@ -15,7 +15,7 @@ import { rankNumber, penaltyPoints, SUITS, RANKS } from './cards.js';
 import { buildMeld, extendMeld, meldPoints, swapJoker } from './melds.js';
 import { legalDiscards } from './game.js';
 
-export type AiLevel = 'easy' | 'medium';
+export type AiLevel = 'easy' | 'medium' | 'hard';
 
 export type AiAction =
   | { type: 'draw' }
@@ -150,7 +150,7 @@ export function chooseAction(view: PlayerView, level: AiLevel = 'medium', rng: (
 
   if (view.phase === 'DRAW') {
     const top = view.discard.at(-1);
-    if (top && level !== 'easy' && wantsDiscard(view, top)) return { type: 'take' };
+    if (top && level !== 'easy' && wantsDiscard(view, top, level)) return { type: 'take' };
     return { type: 'draw' };
   }
 
@@ -187,9 +187,10 @@ function findLayoff(melds: Meld[], hand: Card[]): { meldId: number; cardId: Card
 }
 
 /** Da li vredi uzeti gornju kartu sa gomile. */
-function wantsDiscard(view: PlayerView, top: Card): boolean {
-  if (top.joker) return true;
+function wantsDiscard(view: PlayerView, top: Card, level: AiLevel = 'medium'): boolean {
   const hand = view.hand;
+  // džoker se uvek isplati — ali pre otvaranja samo ako se sa njim odmah otvaram
+  if (top.joker && (view.opened[view.me] || level !== 'hard')) return true;
   const withTop = [...hand, top];
   if (!view.opened[view.me]) {
     // uzmi samo ako sa njom mogu da se otvorim (i ona ulazi u otvaranje)
@@ -212,14 +213,31 @@ export function chooseDiscard(view: PlayerView, level: AiLevel, rng: () => numbe
   // karte u najboljim kombinacijama se čuvaju
   const plan = bestMelds(hand, { keep: 0 });
   const inMeld = new Set(plan.groups.flat());
+  const opened = view.opened[view.me];
+  const n = view.playerCount;
+  const next = (view.me + 1) % n;
+  // koliko je najbliži protivnik blizu kraja (manje karata = veća opasnost)
+  const minOpp = Math.min(...view.handCounts.filter((_, p) => p !== view.me));
   let best = pool[0];
   let bestScore = Infinity;
   for (const c of pool) {
     let score = inMeld.has(c.id) ? 1000 : 0;
     score += promise(c, hand) * 12;
-    score -= penaltyPoints(c);
-    // ne daj sledećem igraču kartu koja ide na sto
-    if (view.melds.some(m => extendMeld(m, [c]))) score += 15;
+    if (level === 'hard') {
+      if (!opened) {
+        // Pre otvaranja kazna je fiksnih 100 — visoke karte su dragocene za 51,
+        // pa se odbacuju NISKE beskorisne karte.
+        score += penaltyPoints(c) * 0.6;
+      } else {
+        // Otvoren: rešavaj se skupih karata, jače kad je neko blizu kraja.
+        score -= penaltyPoints(c) * (minOpp <= 3 ? 2.5 : 1.2);
+      }
+      // sledeći igrač bi je dopisao / uzeo za svoju kombinaciju
+      if (view.melds.some(m => extendMeld(m, [c]))) score += view.opened[next] ? 40 : 15;
+    } else {
+      score -= penaltyPoints(c);
+      if (view.melds.some(m => extendMeld(m, [c]))) score += 15;
+    }
     if (score < bestScore) { bestScore = score; best = c; }
   }
   return best.id;

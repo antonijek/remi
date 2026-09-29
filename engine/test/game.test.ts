@@ -108,7 +108,7 @@ test('kraj partije i bodovanje: pobednik −40, otvoren = zbir ruke, neotvoren 1
   assert.equal(r.handRemi, false);
 });
 
-test('remi iz ruke: −80, ostalima duplo', () => {
+test('remi iz ruke: −140, ostalima duplo', () => {
   const s = base();
   s.hands = [cards('10H1 JH1 QH1 KS1 KD1 KC1 5D1'), cards('9S1 2C1')];
   s.opened = [false, false];
@@ -118,7 +118,7 @@ test('remi iz ruke: −80, ostalima duplo', () => {
   g.discard(0, '5D1');
   const r = g.getState().history.at(-1)!;
   assert.equal(r.handRemi, true);
-  assert.deepEqual(r.points, [-80, 200]); // neotvoren: 100 × 2
+  assert.deepEqual(r.points, [-140, 200]); // neotvoren: 100 × 2
 });
 
 test('bestMelds nalazi otvaranje sa džokerom', () => {

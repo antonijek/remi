@@ -16,7 +16,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 let game;
-let level = 'medium';
+// jedan nivo AI-ja — najjači
+const level = 'hard';
 let players = 4;
 let selected = new Set();
 let staged = [];            // kombinacije pripremljene za otvaranje (id-jevi)
@@ -28,7 +29,7 @@ let freshId = null;         // upravo vučena karta (označena u ruci)
 // ---------- čuvanje ----------
 
 function save() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ level, players, state: game.getState() })); } catch {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ players, state: game.getState() })); } catch {}
 }
 
 function load() {
@@ -36,7 +37,6 @@ function load() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const d = JSON.parse(raw);
-    level = d.level ?? 'medium';
     players = d.players ?? 4;
     game = RemiGame.fromState(d.state);
     return true;
@@ -383,11 +383,11 @@ function suggest() {
       toast(`Možete da se otvorite sa ${plan.points} poena.`);
     } else {
       toast(plan.points ? `Najviše ${plan.points} poena — još nije dovoljno za otvaranje.` : 'Nema kombinacija u ruci.');
-      const a = chooseAction(v, 'medium');
+      const a = chooseAction(v, 'hard');
       if (a.type === 'discard') selected = new Set([a.cardId]);
     }
   } else {
-    const a = chooseAction(v, 'medium');
+    const a = chooseAction(v, 'hard');
     selected = new Set(a.type === 'meld' ? a.groups[0] : a.type === 'layoff' ? a.cardIds : a.type === 'swap' || a.type === 'discard' ? [a.cardId] : []);
     const msg = { meld: 'Predlog: spustite ovu kombinaciju.', layoff: 'Predlog: dopišite ovu kartu na sto.', swap: 'Predlog: ovom kartom uzmite džokera sa stola.', discard: 'Predlog: odbacite ovu kartu.' }[a.type];
     if (msg) toast(msg);
@@ -462,7 +462,7 @@ function showDealEnd() {
   const min = Math.min(...s.scores);
   $('dealEndBody').innerHTML = Array.from({ length: n }, (_, p) =>
     `<tr><td>${esc(NAMES[p])}</td><td>${fmt(last.points[p])}</td><td class="${s.scores[p] === min ? 'best' : ''}">${s.scores[p]}</td></tr>`).join('');
-  $('dealEndNote').textContent = 'Pobednik −40 (remi iz ruke −80, tada ostali duplo). Otvoreni plaćaju karte iz ruke (džoker 20), neotvoreni 100. Manje je bolje.';
+  $('dealEndNote').textContent = 'Pobednik −40 (remi iz ruke −140, tada ostali duplo). Otvoreni plaćaju karte iz ruke (džoker 20), neotvoreni 100. Manje je bolje.';
   $('nextDealBtn').textContent = finished ? 'Nova igra' : 'Sledeća partija';
   if (!$('dealEnd').open) $('dealEnd').showModal();
 }
@@ -500,12 +500,10 @@ $('dealEnd').addEventListener('cancel', e => e.preventDefault());
 $('sheetBtn').addEventListener('click', renderSheet);
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());
 $('menuBtn').addEventListener('click', () => {
-  $('levelSel').value = level;
   $('playersSel').value = String(players);
   $('menu').showModal();
 });
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
-$('levelSel').addEventListener('change', e => { level = e.target.value; save(); });
 $('playersSel').addEventListener('change', e => { players = Number(e.target.value); });
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newGame(); });
 window.addEventListener('resize', () => render());

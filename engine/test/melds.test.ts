@@ -51,8 +51,9 @@ test('dopisivanje i zamena džokera', () => {
   assert.equal(sw!.joker.id, 'JK1');
   assert.equal(swapJoker(m, cardFromId('5S1')), null, 'pogrešna boja');
 
-  const set: Meld = { id: 2, owner: 0, ...ok('9H1 9S1 JK2')! };
-  assert.ok(swapJoker(set, cardFromId('9D1')), 'u kompletu džoker menja bilo koju boju koja nedostaje');
-  assert.ok(swapJoker(set, cardFromId('9C2')));
-  assert.equal(swapJoker(set, cardFromId('9H2')), null, 'ta boja već postoji');
+  const set3: Meld = { id: 2, owner: 0, ...ok('9H1 9S1 JK2')! };
+  assert.equal(swapJoker(set3, cardFromId('9D1')), null, 'iz nepunog kompleta džoker se ne uzima');
+  const set4: Meld = { id: 3, owner: 0, ...ok('9H1 9S1 9D1 JK2')! };
+  assert.ok(swapJoker(set4, cardFromId('9C2')), 'pun komplet: džoker menja jedinu boju koja nedostaje');
+  assert.equal(swapJoker(set4, cardFromId('9H2')), null, 'ta boja već postoji');
 });
