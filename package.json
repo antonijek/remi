@@ -8,7 +8,8 @@
     "build": "cd engine && npm run build",
     "test": "cd engine && npm test",
     "serve": "node tools/serve.js",
-    "test:ui": "node tools/browser-smoke-test.mjs"
+    "test:ui": "node tools/browser-smoke-test.mjs",
+    "deploy": "sh tools/deploy.sh"
   },
   "devDependencies": {
     "playwright": "^1.62.1"
