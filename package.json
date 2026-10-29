@@ -9,6 +9,7 @@
     "test": "cd engine && npm test",
     "serve": "node tools/serve.js",
     "test:ui": "node tools/browser-smoke-test.mjs",
+    "test:online": "node tools/online-ui-test.mjs",
     "deploy": "sh tools/deploy.sh"
   },
   "devDependencies": {

@@ -6,3 +6,6 @@ tools/screenshot-*.png
 server/dist/
 server/*.db
 server/.env
+server/dist/
+*.db
+*.db.tmp

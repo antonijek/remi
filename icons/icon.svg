@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f5132"/>
+  <g transform="rotate(-12 256 256)">
+    <rect x="104" y="112" width="196" height="276" rx="22" fill="#fffdf8" stroke="#cfc8b8" stroke-width="4"/>
+    <text x="126" y="178" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700" fill="#1b1b1b">7</text>
+    <text x="202" y="318" font-family="'Segoe UI Symbol', 'DejaVu Sans', sans-serif" font-size="128" text-anchor="middle" fill="#1b1b1b">♠</text>
+  </g>
+  <g transform="rotate(10 256 256)">
+    <rect x="212" y="124" width="196" height="276" rx="22" fill="#fffdf8" stroke="#cfc8b8" stroke-width="4"/>
+    <text x="232" y="190" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700" fill="#c0262d">★</text>
+    <text x="310" y="330" font-family="'Segoe UI Symbol', 'DejaVu Sans', sans-serif" font-size="128" text-anchor="middle" fill="#c0262d">🃏</text>
+  </g>
+</svg>

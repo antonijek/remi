@@ -1,51 +1,39 @@
-// UI za Remi — tanak sloj nad engine-om (engine/dist). Igra protiv računara.
+// UI za Remi — tanak sloj nad engine-om (engine/dist). Svaki potez čoveka je podatak
+// ({ type: 'draw' | 'take' | 'meld' | ... }) i ide kroz act(): protiv računara se primeni na
+// igru ovde, a u online igri (online.js) šalje serveru.
 
-import {
-  RemiGame, RemiError, chooseAction, bestMelds, buildMeld, meldPoints, swapJoker, extendMeld,
-  sortBySuit, sortByRank, penaltyPoints, legalDiscards,
-} from './engine/dist/index.js';
+import { RemiGame, RemiError, applyAction, chooseAction, bestMelds, swapJoker, extendMeld, penaltyPoints } from './engine/dist/index.js';
+import { cardName } from './ui/cards.js';
+import { ME, playerName, renderSeats } from './ui/seats.js';
+import { renderMelds, renderPiles, renderStaged } from './ui/table.js';
+import { renderHand } from './ui/hand.js';
+import { renderActions } from './ui/actions.js';
+import { fillDealEnd, renderSheet } from './ui/deal-end.js';
+import { loadGame, saveGame } from './ui/storage.js';
+import { toast } from './ui/toast.js';
+import { initOnline } from './online.js';
 
 const FAST = new URLSearchParams(location.search).has('fast');
 const DELAY = FAST ? 0 : 650;
-const SAVE_KEY = 'remi.save.v1';
-const NAMES = ['Vi', 'Milan', 'Jelena', 'Bora'];
-const COLORS = ['#2f7dd1', '#c0392b', '#8e44ad', '#d68910'];
-const ME = 0;
-
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 let game;
-// jedan nivo AI-ja — najjači
-const level = 'hard';
 let players = 4;
-let selected = new Set();
-let staged = [];            // kombinacije pripremljene za otvaranje (id-jevi)
-let sortMode = 'suit';
 let timer = null;
-let toastTimer = null;
-let freshId = null;         // upravo vučena karta (označena u ruci)
+let online = null; // dok je online.active, sto crta stanje sa servera
+const ui = { selected: new Set(), staged: [], sortMode: 'suit', freshId: null, locked: false };
 
-// ---------- čuvanje ----------
+const save = () => saveGame(game, players, toast);
+const view = () => (online?.active ? online.view() : game.getPlayerView(ME));
 
-function save() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ players, state: game.getState() })); } catch {}
-}
-
-function load() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const d = JSON.parse(raw);
-    players = d.players ?? 4;
-    game = RemiGame.fromState(d.state);
-    return true;
-  } catch {
-    return false;
-  }
+function resetTurnUi() {
+  ui.selected = new Set();
+  ui.staged = [];
+  ui.freshId = null;
 }
 
 function newGame() {
+  if (online?.active) { toast('Prvo napustite online igru (☰ → Napusti online igru).'); return; }
   clearTimeout(timer);
   game = new RemiGame({ players });
   resetTurnUi();
@@ -54,323 +42,75 @@ function newGame() {
   step();
 }
 
-function resetTurnUi() {
-  selected = new Set();
-  staged = [];
-  freshId = null;
-}
-
-// ---------- karte ----------
-
-function cardName(c) {
-  return c.joker ? 'džoker' : `${c.rank}${c.suit}`;
-}
-
-function cardEl(c, cls = '') {
-  const el = document.createElement('div');
-  el.className = `card ${cls}`;
-  if (c.joker) {
-    el.classList.add('joker');
-    el.innerHTML = '<span class="corner">★<small>J</small></span><span class="pip">🃏</span>';
-  } else {
-    if (c.suit === '♥' || c.suit === '♦') el.classList.add('red');
-    el.innerHTML = `<span class="corner">${c.rank}<small>${c.suit}</small></span><span class="pip">${c.suit}</span>`;
-  }
-  el.dataset.id = c.id;
-  el.setAttribute('aria-label', cardName(c));
-  return el;
-}
-
-function backEl(cls = '') {
-  const el = document.createElement('div');
-  el.className = `card back ${cls}`;
-  return el;
-}
-
-// ---------- pozicije ----------
-
-function slotOf(p, n) {
-  if (p === ME) return 'me';
-  const rel = (p - ME + n) % n;
-  if (n === 2) return 'top';
-  if (n === 3) return rel === 1 ? 'right' : 'left';
-  return ['me', 'right', 'top', 'left'][rel];
-}
-
 // ---------- render ----------
 
-function view() {
-  return game.getPlayerView(ME);
-}
+const handlers = {
+  draw: () => humanAct({ type: 'draw' }, card => { ui.freshId = card?.id ?? null; }),
+  take: () => humanAct({ type: 'take' }, card => { ui.freshId = card?.id ?? null; }),
+  returnCard: () => humanAct({ type: 'return' }, () => {
+    ui.staged = ui.staged.filter(g => !g.includes(ui.freshId));
+    ui.freshId = null;
+  }),
+  open: () => humanAct({ type: 'meld', groups: ui.staged }, () => { toast('Otvorili ste se!'); ui.staged = []; ui.selected.clear(); }),
+  meld: ids => humanAct({ type: 'meld', groups: [ids] }, () => ui.selected.clear()),
+  layoff: meldId => layoffOrSwap(meldId),
+  discard: id => humanAct({ type: 'discard', cardId: id }, () => { ui.selected.clear(); ui.staged = []; ui.freshId = null; }),
+  stage: () => { ui.staged.push([...ui.selected]); ui.selected.clear(); render(); },
+  unstage: i => { ui.staged.splice(i, 1); render(); },
+  clearStaged: () => { ui.staged = []; render(); },
+  toggle: id => { if (ui.selected.has(id)) ui.selected.delete(id); else ui.selected.add(id); render(); },
+  sort: () => { ui.sortMode = ui.sortMode === 'suit' ? 'rank' : 'suit'; render(); },
+  suggest: () => suggest(),
+};
 
 function render() {
   const v = view();
-  const n = v.playerCount;
-  $('dealInfo').innerHTML = `Partija ${v.dealNo} · Delio: <strong>${esc(NAMES[v.dealer])}</strong> · igra se do ${game.targetScore}`;
-
-  // mesta
-  for (const slot of ['top', 'left', 'right', 'me']) document.querySelector(`.seat[data-seat="${slot}"]`).replaceChildren();
-  for (let p = 0; p < n; p++) renderSeat(v, p, slotOf(p, n));
-
-  renderPiles(v);
-  renderMelds(v);
-  renderStaged(v);
-  renderHand(v);
-  renderActions(v);
-}
-
-function renderSeat(v, p, slot) {
-  const el = document.querySelector(`.seat[data-seat="${slot}"]`);
-  const active = (v.phase === 'DRAW' || v.phase === 'PLAY') && v.turn === p;
-  const plate = document.createElement('div');
-  plate.className = 'plate' + (active ? ' active' : '');
-  plate.innerHTML =
-    `<div class="avatar" style="background:${COLORS[p]}">${esc(NAMES[p][0])}</div>` +
-    `<div><div class="name">${esc(NAMES[p])} ${v.opened[p] ? '<span class="badge-open">otvoren</span>' : ''}</div>` +
-    `<div class="sub">poena <b>${v.scores[p]}</b>${p !== ME ? ` · karata <b>${v.handCounts[p]}</b>` : ''}</div></div>` +
-    (v.dealer === p ? '<span class="dealer-chip" title="Delio">D</span>' : '');
-  const parts = [plate];
-  if (p !== ME) {
-    const backs = document.createElement('div');
-    backs.className = 'backs';
-    for (let i = 0; i < Math.min(v.handCounts[p], 15); i++) {
-      const img = document.createElement('img');
-      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 70"><rect x="1" y="1" width="48" height="68" rx="5" fill="#b1262e" stroke="#fff" stroke-width="3"/></svg>');
-      img.alt = '';
-      backs.appendChild(img);
-    }
-    parts.push(backs);
-  }
-  el.replaceChildren(...parts);
-}
-
-function myDrawTurn(v) {
-  return v.turn === ME && v.phase === 'DRAW';
-}
-
-function renderPiles(v) {
-  const stock = $('stock');
-  stock.replaceChildren(v.stockCount ? backEl('pile') : Object.assign(document.createElement('div'), { className: 'pile-empty' }));
-  stock.classList.toggle('clickable', myDrawTurn(v));
-  stock.onclick = myDrawTurn(v) ? () => humanDraw() : null;
-  stock.title = myDrawTurn(v) ? 'Vuci kartu sa špila' : '';
-  $('stockCount').textContent = `špil: ${v.stockCount}`;
-
-  const pile = $('discardPile');
-  const top = v.discard.at(-1);
-  pile.replaceChildren(top ? cardEl(top, 'pile') : Object.assign(document.createElement('div'), { className: 'pile-empty' }));
-  const canTake = myDrawTurn(v) && !!top;
-  pile.classList.toggle('clickable', canTake);
-  pile.onclick = canTake ? () => humanTake() : null;
-  pile.title = canTake ? `Uzmi ${cardName(top)} sa gomile` : '';
-}
-
-function renderMelds(v) {
-  const box = $('melds');
-  if (!v.melds.length) {
-    box.innerHTML = '<span class="empty">Još nema spuštenih kombinacija.</span>';
-    return;
-  }
-  const canTarget = v.turn === ME && v.phase === 'PLAY' && v.opened[ME] && selected.size > 0;
-  box.replaceChildren(...v.melds.map(m => {
-    const el = document.createElement('div');
-    el.className = 'meld' + (canTarget ? ' target' : '');
-    el.innerHTML = `<span class="owner" style="background:${COLORS[m.owner]}" title="${esc(NAMES[m.owner])}"></span>`;
-    for (const mc of m.cards) el.appendChild(cardEl(mc.card, 'small'));
-    if (canTarget) {
-      el.title = 'Dopiši izabrane karte ovde';
-      el.addEventListener('click', () => humanLayoff(m.id));
-    }
-    return el;
-  }));
-}
-
-function stagedCards(v) {
-  return staged.map(ids => ids.map(id => v.hand.find(c => c.id === id)).filter(Boolean));
-}
-
-const pointsOf = cards => { const m = buildMeld(cards); return m ? meldPoints(m) : 0; };
-
-function stagedPoints(v) {
-  return stagedCards(v).reduce((s, cards) => s + pointsOf(cards), 0);
-}
-
-function renderStaged(v) {
-  const box = $('staged');
-  if (!staged.length) { box.replaceChildren(); return; }
-  box.replaceChildren(...stagedCards(v).map((cards, i) => {
-    const el = document.createElement('div');
-    el.className = 'meld target';
-    el.title = 'Vrati u ruku';
-    for (const c of cards) el.appendChild(cardEl(c, 'small'));
-    const pts = document.createElement('span');
-    pts.className = 'pts';
-    pts.textContent = pointsOf(cards);
-    el.appendChild(pts);
-    el.addEventListener('click', () => { staged.splice(i, 1); render(); });
-    return el;
-  }));
-}
-
-function renderHand(v) {
-  const hand = $('myHand');
-  const inStaged = new Set(staged.flat());
-  const sorted = (sortMode === 'suit' ? sortBySuit : sortByRank)(v.hand).filter(c => !inStaged.has(c.id));
-  const canSelect = v.turn === ME && v.phase === 'PLAY';
-  hand.classList.toggle('locked', !canSelect);
-  // preklapanje prema broju karata: ruka mora da stane u raspoloživu širinu
-  const w = cardWidth();
-  // na širokom ekranu levo je savet, desno dugmad — ruka dobija sredinu
-  const avail = Math.min(window.innerWidth - 24, 1100) - (window.innerWidth > 760 ? 420 : 0);
-  const count = sorted.length;
-  const step = count > 1 ? Math.min(w * 0.62, (avail - w) / (count - 1)) : w;
-  hand.style.setProperty('--ml', `${Math.min(0, step - w).toFixed(1)}px`);
-  hand.replaceChildren(...sorted.map(c => {
-    const el = cardEl(c);
-    if (selected.has(c.id)) el.classList.add('sel');
-    if (c.id === freshId) el.classList.add('fresh');
-    el.addEventListener('click', () => {
-      if (!canSelect) return;
-      if (selected.has(c.id)) selected.delete(c.id); else selected.add(c.id);
-      render();
-    });
-    return el;
-  }));
-}
-
-/** Stvarna širina karte u ruci (zavisi od veličine ekrana preko --card-w). */
-function cardWidth() {
-  const el = cardEl({ id: 'probe', rank: 'A', suit: '♠', joker: false });
-  el.style.cssText = 'position:absolute;visibility:hidden';
-  document.body.appendChild(el);
-  const w = el.getBoundingClientRect().width;
-  el.remove();
-  return w;
-}
-
-function button(label, onClick, { primary = false, disabled = false, title = '' } = {}) {
-  const b = document.createElement('button');
-  b.className = 'btn' + (primary ? ' primary' : '');
-  b.textContent = label;
-  b.disabled = disabled;
-  if (title) b.title = title;
-  b.addEventListener('click', onClick);
-  return b;
-}
-
-function renderActions(v) {
-  const actions = $('actions');
-  const hint = $('hint');
-  const btns = [];
-  const myTurn = v.turn === ME;
-  const sel = v.hand.filter(c => selected.has(c.id));
-  const selMeld = sel.length >= 3 ? buildMeld(sel) : null;
-
-  if (!myTurn || v.phase === 'DEAL_END' || v.phase === 'MATCH_END') {
-    hint.textContent = v.phase === 'DRAW' || v.phase === 'PLAY' ? `Igra ${NAMES[v.turn]}…` : '';
-  } else if (v.phase === 'DRAW') {
-    hint.innerHTML = '<b>Vucite kartu:</b> kliknite špil ili gomilu.';
-  } else if (!v.opened[ME]) {
-    const pts = stagedPoints(v);
-    hint.innerHTML = v.tookDiscard
-      ? `Uzeli ste kartu sa gomile — morate se otvoriti sa njom (${pts}/${v.openingPoints}) ili je vratiti.`
-      : staged.length
-        ? `Priprema otvaranja: <b>${pts}</b>/${v.openingPoints} poena.`
-        : 'Izaberite karte za kombinaciju, ili jednu kartu za odbacivanje.';
-    btns.push(button('Dodaj kombinaciju', () => { staged.push(sel.map(c => c.id)); selected.clear(); render(); },
-      { disabled: !selMeld, title: 'Niz ili komplet od izabranih karata' }));
-    const includesTaken = !v.tookDiscard || staged.flat().includes(v.tookDiscard);
-    btns.push(button(`Otvori (${pts})`, humanOpen, { primary: true, disabled: pts < v.openingPoints || !includesTaken || !staged.length }));
-    if (staged.length) btns.push(button('Poništi pripremu', () => { staged = []; render(); }));
-    if (v.tookDiscard) btns.push(button('Vrati kartu na gomilu', humanReturn));
-  } else {
-    hint.innerHTML = 'Spuštajte kombinacije, dopišite (izaberite kartu pa kliknite kombinaciju na stolu), pa odbacite jednu kartu.';
-    btns.push(button('Spusti kombinaciju', () => humanMeld(sel.map(c => c.id)), { primary: !!selMeld, disabled: !selMeld }));
-  }
-
-  if (myTurn && v.phase === 'PLAY') {
-    const one = sel.length === 1 ? sel[0] : null;
-    const canDiscard = one && legalDiscards(v.hand, v.takenCard).some(c => c.id === one.id) && !(v.tookDiscard && !v.opened[ME]) && !staged.flat().includes(one.id);
-    btns.push(button(one ? `Odbaci ${cardName(one)}` : 'Odbaci', () => humanDiscard(one.id), { disabled: !canDiscard, primary: !!canDiscard && !selMeld }));
-    btns.push(button('Predlog', suggest));
-  }
-  btns.push(button(sortMode === 'suit' ? 'Sortiraj po broju' : 'Sortiraj po boji', () => { sortMode = sortMode === 'suit' ? 'rank' : 'suit'; render(); }));
-  actions.replaceChildren(...btns);
+  ui.locked = Boolean(online?.waiting);
+  const where = online?.active ? `Soba ${online.room().code} · partija ${v.dealNo}` : `Partija ${v.dealNo}`;
+  $('dealInfo').textContent = `${where} · deli ${playerName(v.dealer)}`;
+  renderSeats(v);
+  renderPiles(v, ui, handlers);
+  renderMelds(v, ui, handlers);
+  renderStaged(v, ui, handlers);
+  renderHand(v, ui, handlers);
+  // u igri sa ljudima nema pomoći računara
+  renderActions(v, ui, online?.active ? { ...handlers, suggest: null } : handlers);
 }
 
 // ---------- potezi čoveka ----------
 
-function attempt(fn) {
+/** Pošalji potez; posle uspeha pozovi done(uzeta karta). */
+function humanAct(action, done = () => undefined) {
+  if (online?.active) {
+    online.act(action);
+    done(null);
+    render();
+    return;
+  }
+  let card;
   try {
-    fn();
-    return true;
+    card = applyAction(game, ME, action);
   } catch (e) {
-    if (e instanceof RemiError) { toast(e.message); return false; }
+    if (e instanceof RemiError) { toast(e.message); return; }
     throw e;
   }
-}
-
-function humanDraw() {
-  let card;
-  if (!attempt(() => { card = game.drawStock(ME); })) return;
-  freshId = card?.id ?? null;
+  done(card);
   after();
 }
 
-function humanTake() {
-  let card;
-  if (!attempt(() => { card = game.takeDiscard(ME); })) return;
-  freshId = card.id;
-  after();
-}
-
-function humanReturn() {
-  if (!attempt(() => game.returnDiscard(ME))) return;
-  staged = staged.filter(g => !g.includes(freshId));
-  freshId = null;
-  after();
-}
-
-function humanOpen() {
-  if (!attempt(() => game.meld(ME, staged))) return;
-  toast('Otvorili ste se!');
-  staged = [];
-  selected.clear();
-  after();
-}
-
-function humanMeld(ids) {
-  if (!attempt(() => game.meld(ME, [ids]))) return;
-  selected.clear();
-  after();
-}
-
-function humanLayoff(meldId) {
+function layoffOrSwap(meldId) {
   const v = view();
-  const ids = [...selected];
+  const ids = [...ui.selected];
   const meld = v.melds.find(m => m.id === meldId);
-  // jedna karta koja menja džokera → zamena
+  // jedna karta koja menja džokera (a ne može da se dopiše) → zamena
   if (ids.length === 1) {
     const c = v.hand.find(x => x.id === ids[0]);
     if (c && swapJoker(meld, c) && !extendMeld(meld, [c])) {
-      if (!attempt(() => game.swapJoker(ME, meldId, c.id))) return;
-      toast('Uzeli ste džokera!');
-      selected.clear();
-      after();
+      humanAct({ type: 'swap', meldId, cardId: c.id }, () => { toast('Uzeli ste džokera!'); ui.selected.clear(); });
       return;
     }
   }
-  if (!attempt(() => game.layoff(ME, meldId, ids))) return;
-  selected.clear();
-  after();
-}
-
-function humanDiscard(id) {
-  if (!attempt(() => game.discard(ME, id))) return;
-  selected.clear();
-  staged = [];
-  freshId = null;
-  after();
+  humanAct({ type: 'layoff', meldId, cardIds: ids }, () => ui.selected.clear());
 }
 
 function suggest() {
@@ -378,24 +118,26 @@ function suggest() {
   if (!v.opened[ME]) {
     const plan = bestMelds(v.hand, { mustInclude: v.tookDiscard });
     if (plan.points >= v.openingPoints) {
-      staged = plan.groups;
-      selected.clear();
+      ui.staged = plan.groups;
+      ui.selected.clear();
       toast(`Možete da se otvorite sa ${plan.points} poena.`);
     } else {
       toast(plan.points ? `Najviše ${plan.points} poena — još nije dovoljno za otvaranje.` : 'Nema kombinacija u ruci.');
       const a = chooseAction(v, 'hard');
-      if (a.type === 'discard') selected = new Set([a.cardId]);
+      if (a.type === 'discard') ui.selected = new Set([a.cardId]);
     }
   } else {
     const a = chooseAction(v, 'hard');
-    selected = new Set(a.type === 'meld' ? a.groups[0] : a.type === 'layoff' ? a.cardIds : a.type === 'swap' || a.type === 'discard' ? [a.cardId] : []);
-    const msg = { meld: 'Predlog: spustite ovu kombinaciju.', layoff: 'Predlog: dopišite ovu kartu na sto.', swap: 'Predlog: ovom kartom uzmite džokera sa stola.', discard: 'Predlog: odbacite ovu kartu.' }[a.type];
+    ui.selected = new Set(a.type === 'meld' ? a.groups[0] : a.type === 'layoff' ? a.cardIds
+      : a.type === 'swap' || a.type === 'discard' ? [a.cardId] : []);
+    const msg = { meld: 'Predlog: spustite ovu kombinaciju.', layoff: 'Predlog: dopišite ovu kartu na sto.',
+      swap: 'Predlog: ovom kartom uzmite džokera sa stola.', discard: 'Predlog: odbacite ovu kartu.' }[a.type];
     if (msg) toast(msg);
   }
   render();
 }
 
-// ---------- tok igre ----------
+// ---------- tok igre protiv računara ----------
 
 function after() {
   save();
@@ -403,93 +145,53 @@ function after() {
   step();
 }
 
+function aiMove(p) {
+  const v = game.getPlayerView(p);
+  const a = chooseAction(v, 'hard');
+  const name = playerName(p);
+  try {
+    const card = applyAction(game, p, a);
+    if (a.type === 'take') toast(`${name} uzima ${cardName(card)} sa gomile`);
+    if (a.type === 'meld' && !v.opened[p]) toast(`${name} se otvorio!`);
+    if (a.type === 'swap') toast(`${name} uzima džokera sa stola`);
+  } catch (e) {
+    // AI ne bi smeo da pogreši — ako ipak, vuče ili odbaci bilo šta, da igra ne stane
+    console.error('AI potez odbijen', a, e);
+    const hand = game.getState().hands[p];
+    const fallback = hand.find(c => !c.joker) ?? hand[0];
+    if (game.getState().phase === 'DRAW') game.drawStock(p);
+    else if (fallback) game.discard(p, fallback.id);
+  }
+}
+
 function step() {
   clearTimeout(timer);
+  if (online?.active) return;
   const s = game.getState();
   if (s.phase === 'DEAL_END' || s.phase === 'MATCH_END') { showDealEnd(); return; }
   if (s.turn === ME) return;
-  const p = s.turn;
   timer = setTimeout(() => {
-    const v = game.getPlayerView(p);
-    const a = chooseAction(v, level);
-    const name = NAMES[p];
-    try {
-      switch (a.type) {
-        case 'draw': game.drawStock(p); break;
-        case 'take': { const c = game.takeDiscard(p); toast(`${name} uzima ${cardName(c)} sa gomile`); break; }
-        case 'return': game.returnDiscard(p); break;
-        case 'meld': {
-          const opening = !v.opened[p];
-          game.meld(p, a.groups);
-          if (opening) toast(`${name} se otvorio!`);
-          break;
-        }
-        case 'layoff': game.layoff(p, a.meldId, a.cardIds); break;
-        case 'swap': game.swapJoker(p, a.meldId, a.cardId); toast(`${name} uzima džokera sa stola`); break;
-        case 'discard': game.discard(p, a.cardId); break;
-      }
-    } catch (e) {
-      // AI ne bi smeo da pogreši — ako ipak, odbaci bilo šta da igra ne stane
-      console.error('AI potez odbijen', a, e);
-      const hand = game.getState().hands[p];
-      const fallback = hand.find(c => !c.joker) ?? hand[0];
-      if (game.getState().phase === 'DRAW') game.drawStock(p);
-      else if (fallback) attempt(() => game.discard(p, fallback.id));
-    }
+    aiMove(s.turn);
     save();
     render();
     step();
-  }, a_delay());
+  }, s.phase === 'DRAW' ? DELAY : Math.round(DELAY * 0.8));
 }
-
-function a_delay() {
-  const s = game.getState();
-  return s.phase === 'DRAW' ? DELAY : Math.round(DELAY * 0.8);
-}
-
-// ---------- kraj partije ----------
 
 function showDealEnd() {
-  const s = game.getState();
-  const last = s.history.at(-1);
-  if (!last) return;
-  const finished = s.phase === 'MATCH_END';
-  const n = s.playerCount;
-  $('dealEndTitle').textContent = finished
-    ? (s.winners.includes(ME) ? 'Pobeda u meču! 🎉' : `Meč je dobio: ${s.winners.map(p => NAMES[p]).join(', ')}`)
-    : last.winner === null ? 'Nestalo je karata — partija bez pobednika'
-    : last.handRemi ? `${NAMES[last.winner]}: REMI IZ RUKE!` : `${NAMES[last.winner]} je završio`;
-  const min = Math.min(...s.scores);
-  $('dealEndBody').innerHTML = Array.from({ length: n }, (_, p) =>
-    `<tr><td>${esc(NAMES[p])}</td><td>${fmt(last.points[p])}</td><td class="${s.scores[p] === min ? 'best' : ''}">${s.scores[p]}</td></tr>`).join('');
-  $('dealEndNote').textContent = 'Pobednik −40 (remi iz ruke −140, tada ostali duplo). Otvoreni plaćaju karte iz ruke (džoker 20), neotvoreni 100. Manje je bolje.';
-  $('nextDealBtn').textContent = finished ? 'Nova igra' : 'Sledeća partija';
-  if (!$('dealEnd').open) $('dealEnd').showModal();
-}
-
-const fmt = x => (x > 0 ? `+${x}` : String(x));
-
-function renderSheet() {
-  const s = game.getState();
-  const n = s.playerCount;
-  let html = `<thead><tr><th>#</th>${NAMES.slice(0, n).map(x => `<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>`;
-  for (const h of s.history) html += `<tr><td>${h.dealNo}${h.handRemi ? ' ★' : ''}</td>${h.points.map(x => `<td>${fmt(x)}</td>`).join('')}</tr>`;
-  html += `<tr class="total"><td>Ukupno</td>${s.scores.map(x => `<td>${x}</td>`).join('')}</tr></tbody>`;
-  $('sheetTable').innerHTML = html;
-  $('sheet').showModal();
-}
-
-function toast(msg) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  if (fillDealEnd(view()) && !$('dealEnd').open) $('dealEnd').showModal();
 }
 
 // ---------- dugmad ----------
 
 $('nextDealBtn').addEventListener('click', () => {
+  if (online?.active) {
+    if (online.room().status === 'FINISHED') { $('dealEnd').close(); online.leaveFinished(); return; }
+    online.ready();
+    $('nextDealBtn').disabled = true;
+    $('nextDealBtn').textContent = 'Čeka se ostale…';
+    return;
+  }
   $('dealEnd').close();
   if (game.getState().phase === 'MATCH_END') { newGame(); return; }
   game.nextDeal();
@@ -497,20 +199,65 @@ $('nextDealBtn').addEventListener('click', () => {
   after();
 });
 $('dealEnd').addEventListener('cancel', e => e.preventDefault());
-$('sheetBtn').addEventListener('click', renderSheet);
+$('sheetBtn').addEventListener('click', () => renderSheet(view()));
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());
 $('menuBtn').addEventListener('click', () => {
   $('playersSel').value = String(players);
+  $('leaveOnlineBtn').hidden = !online?.active;
   $('menu').showModal();
 });
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
 $('playersSel').addEventListener('change', e => { players = Number(e.target.value); });
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newGame(); });
+$('leaveOnlineBtn').addEventListener('click', () => { $('menu').close(); online.leave(); });
+$('onlineBtn').addEventListener('click', () => online.open());
 window.addEventListener('resize', () => render());
+
+// ---------- online ----------
+
+online = initOnline({
+  render,
+  toast,
+  setNames: null,
+  enter: () => { clearTimeout(timer); resetTurnUi(); },
+  exit: () => {
+    if ($('dealEnd').open) $('dealEnd').close();
+    resetTurnUi();
+    render();
+    step();
+  },
+  newTurnState: () => { ui.selected.clear(); },
+  dealEnd: (v, room) => {
+    fillDealEnd(v);
+    const btn = $('nextDealBtn');
+    btn.disabled = false;
+    if (v.phase === 'MATCH_END') {
+      const r = room.rating;
+      const d = r?.deltas[room.mySeat] ?? 0;
+      $('dealEndNote').textContent += r?.rated ? ` Rejting: ${d >= 0 ? '+' : ''}${d} → ${r.newRatings[room.mySeat]}.`
+        : ' Meč nije rangiran (rangirano je kad za stolom sede bar dva čoveka).';
+      btn.textContent = 'Nazad u lobi';
+    } else {
+      btn.textContent = 'Dalje';
+    }
+    if (!$('dealEnd').open) $('dealEnd').showModal();
+  },
+  closeDealEnd: () => { if ($('dealEnd').open) $('dealEnd').close(); },
+});
 
 // ---------- start ----------
 
-if (load()) { render(); step(); }
-else newGame();
+const saved = loadGame(toast);
+if (saved) {
+  ({ game, players } = saved);
+  render();
+  step();
+} else {
+  newGame();
+}
 
-window.__remi = { get game() { return game; }, ME, penaltyPoints };
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(e => console.error('Rad bez interneta nije uključen:', e));
+}
+
+window.__remi = { get game() { return game; }, get online() { return online; }, ME, penaltyPoints };

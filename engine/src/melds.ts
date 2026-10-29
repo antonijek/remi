@@ -2,7 +2,8 @@
 //
 // - Komplet: 3–4 karte istog ranga, sve različite boje.
 // - Niz: 3+ karte iste boje redom; kec je 1 (A-2-3) ili 14 (Q-K-A), ne oba (nema K-A-2).
-// - Najviše JEDAN džoker u kombinaciji; džoker preuzima rang/boju karte koju menja.
+// - Pri otvaranju i u kompletu najviše JEDAN džoker; na niz se posle otvaranja sme dopisati
+//   još džokera (zoki.com, forestrummy.com). Džoker preuzima rang/boju karte koju menja.
 
 import type { Card, Meld, MeldCard, MeldKind, Rank, Suit } from './types.js';
 import { rankFromNumber, rankNumber, rankPoints, SUITS } from './cards.js';
@@ -10,11 +11,13 @@ import { rankFromNumber, rankNumber, rankPoints, SUITS } from './cards.js';
 export const MAX_JOKERS_PER_MELD = 1;
 
 /** Pokušaj da od karata napraviš kombinaciju; null ako nije validna. */
-export function buildMeld(cards: readonly Card[]): { kind: MeldKind; cards: MeldCard[] } | null {
+export function buildMeld(cards: readonly Card[], maxJokers = MAX_JOKERS_PER_MELD): { kind: MeldKind; cards: MeldCard[] } | null {
   if (cards.length < 3) return null;
   const jokers = cards.filter(c => c.joker);
-  if (jokers.length > MAX_JOKERS_PER_MELD) return null;
-  return buildSet(cards) ?? buildRun(cards);
+  if (jokers.length > maxJokers) return null;
+  // komplet uvek sa najviše jednim džokerom; više džokera dozvoljava samo niz
+  if (jokers.length <= MAX_JOKERS_PER_MELD) return buildSet(cards) ?? buildRun(cards);
+  return buildRun(cards);
 }
 
 function buildSet(cards: readonly Card[]): { kind: MeldKind; cards: MeldCard[] } | null {
@@ -83,7 +86,7 @@ export function meldPoints(m: { kind: MeldKind; cards: MeldCard[] }): number {
 /** Da li se karte mogu dodati na postojeću kombinaciju (vraća novu verziju ili null). */
 export function extendMeld(meld: Meld, add: readonly Card[]): { kind: MeldKind; cards: MeldCard[] } | null {
   const all = [...meld.cards.map(mc => mc.card), ...add];
-  const built = buildMeld(all);
+  const built = buildMeld(all, meld.kind === 'run' ? all.length : MAX_JOKERS_PER_MELD);
   if (!built || built.kind !== meld.kind) return null;
   return built;
 }
@@ -94,7 +97,10 @@ export function extendMeld(meld: Meld, add: readonly Card[]): { kind: MeldKind; 
  */
 export function swapJoker(meld: Meld, card: Card): { cards: MeldCard[]; joker: Card } | null {
   if (card.joker) return null;
-  const idx = meld.cards.findIndex(mc => mc.card.joker);
+  // u nizu sa više džokera menja se baš onaj koji predstavlja ovu kartu
+  const idx = meld.kind === 'run'
+    ? meld.cards.findIndex(mc => mc.card.joker && mc.rank === card.rank && mc.suit === card.suit)
+    : meld.cards.findIndex(mc => mc.card.joker);
   if (idx < 0) return null;
   const jmc = meld.cards[idx];
   if (meld.kind === 'run') {
@@ -106,7 +112,7 @@ export function swapJoker(meld: Meld, card: Card): { cards: MeldCard[]; joker: C
     if (card.rank !== jmc.rank) return null;
     if (meld.cards.some(mc => !mc.card.joker && mc.suit === card.suit)) return null;
   }
-  const rebuilt = buildMeld(meld.cards.map((mc, i) => (i === idx ? card : mc.card)));
+  const rebuilt = buildMeld(meld.cards.map((mc, i) => (i === idx ? card : mc.card)), meld.cards.length);
   if (!rebuilt) return null;
   return { cards: rebuilt.cards, joker: jmc.card };
 }

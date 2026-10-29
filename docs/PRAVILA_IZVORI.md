@@ -33,3 +33,12 @@ Istraženo 2026-09-29. Izvori:
 
 ## Moguća proširenja
 - „Suvi“ remi iz ruke (−280, ostali ×4) kao opcija sobe.
+
+## Provera 2026-10-30
+Ponovo pročitano 7 izvora (zoki, forestrummy, mycity, kakoas, legalbet, igra-razbibriga, Wikipedija). Uvedeno:
+| Pitanje | Izvori | Naš izbor |
+|---|---|---|
+| Špil se potroši | gomila se okreće bez mešanja (igra-razbibriga, Wikipedija); ostali ne pominju | okreće se bez mešanja, gornja karta ostaje na gomili |
+| Više džokera | pri otvaranju najviše jedan (zoki, forestrummy); na niz posle otvaranja „može ih biti više“ (zoki), „bilo koji broj“ (forestrummy) | otvaranje i komplet: jedan; niz posle otvaranja: više |
+Potvrđeno bez izmena: 15/14 karata, otvaranje 51 odjednom, uzeta karta sa gomile pre otvaranja mora u otvaranje, kec 10 (1 u A-2-3), slike 10, džoker u ruci 20, pobednik −40, neotvoren 100, hand −140 i ostali ×2, meč do 501.
+Nije uvedeno: „hand karta“ ispod sečenja, sahranjivanje džokera uz drugu kartu, suvi hand −280 ×4.

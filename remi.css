@@ -15,6 +15,10 @@
   --dialog-bg: #fbfaf7;
   --dialog-ink: #1b1b1b;
   --good: #1d8a4a;
+  --av0: #2f7dd1;
+  --av1: #c0392b;
+  --av2: #8e44ad;
+  --av3: #d68910;
 
   /* veličine se prilagođavaju i širini i visini prozora */
   --card-w: clamp(50px, min(10.5vw, 13vh), 100px);
@@ -145,13 +149,10 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
   background: #fffdf8; border: 1px solid #cfc8b8; box-shadow: 0 2px 4px rgba(0,0,0,.35);
   color: #1b1b1b; font-weight: 700; user-select: none; overflow: hidden;
 }
-.card.red { color: #c0262d; }
-.card .corner { position: absolute; top: 4%; left: 7%; line-height: .95; text-align: center; font-size: calc(var(--w, var(--card-w)) * .27); }
-.card .corner small { display: block; font-size: .85em; }
-.card .pip { position: absolute; inset: 22% 0 0; display: grid; place-items: center; font-size: calc(var(--w, var(--card-w)) * .5); }
-.card.joker { background: linear-gradient(135deg, #fff6d6, #ffe08a); color: #7a3e00; }
-.card.joker .pip { font-size: calc(var(--w, var(--card-w)) * .46); }
-.card.back { background: repeating-linear-gradient(45deg, #8e1c22 0 6px, #b1262e 6px 12px); border: 3px solid #fff; }
+/* karte su slike (icons/cards, CC0 set kao u Preferansu, Lori i Tabliću) */
+.card { overflow: hidden; }
+.card img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.card.back { border: 0; background: none; }
 .card.small { --w: var(--meld-w); width: var(--meld-w); border-radius: 4px; }
 .card.pile { --w: var(--pile-w); width: var(--pile-w); }
 
@@ -173,6 +174,11 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .meld.target { cursor: pointer; border-color: rgba(242,193,78,.55); }
 .meld.target:hover { border-color: var(--accent); background: rgba(242,193,78,.12); }
 .meld .owner { position: absolute; top: -7px; left: -4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,.4); }
+/* boje igrača (avatar i oznaka vlasnika kombinacije), iste kao u Lori i Tabliću */
+.p0 { background: var(--av0); }
+.p1 { background: var(--av1); }
+.p2 { background: var(--av2); }
+.p3 { background: var(--av3); }
 .melds .empty { color: var(--muted); font-size: .9rem; align-self: center; }
 
 /* priprema otvaranja (kombinacije koje još nisu na stolu) */
@@ -224,4 +230,38 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
   .hand { padding-top: 12px; }
   .topbar { height: 58px; }
   .staged { bottom: 12%; }
+}
+
+/* ---------- online: lobi, čekaonica, chat ---------- */
+.lobby {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center;
+  background: rgba(0, 0, 0, .6); padding: 12px; overflow-y: auto;
+}
+.lobby-box {
+  width: min(460px, 100%); background: var(--dialog-bg); color: var(--dialog-ink);
+  border-radius: 14px; padding: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+.lobby-head { display: flex; align-items: center; justify-content: space-between; }
+.lobby-head h2 { margin: 0; }
+.lobby-head .icon-btn { color: var(--dialog-ink); }
+.lobby-msg { background: var(--accent); color: var(--accent-ink); border-radius: 8px; padding: 8px 10px; font-weight: 600; }
+.lobby .panel { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.lobby .panel[hidden] { display: none; }
+.lobby label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.lobby input, .lobby select, #chatInput { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(127, 127, 127, .5); }
+.lobby .btn { color: var(--dialog-ink); border-color: rgba(0, 0, 0, .2); }
+.lobby .btn.primary { color: var(--accent-ink); }
+.lobby h3 { margin: 8px 0 0; font-size: 1rem; }
+.lobby .row, #chatForm { display: flex; gap: 8px; align-items: center; }
+.lobby .row > input, .lobby .row > select, #chatInput { flex: 1; min-width: 0; }
+.error { color: var(--av1); margin: 0; min-height: 1.2em; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ol.list { list-style: decimal inside; }
+.list li { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: rgba(127, 127, 127, .12); }
+.list li .btn { padding: 5px 10px; }
+.chat-list { list-style: none; margin: 0 0 10px; padding: 0; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+#chatBtn { position: relative; }
+.badge {
+  position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px;
+  background: var(--av1); color: var(--ink); font-size: .7rem; font-weight: 700; line-height: 18px; text-align: center;
 }

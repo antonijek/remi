@@ -25,7 +25,9 @@ try {
     let moves = 0, opened = false, shot = false;
     const t0 = Date.now();
     const click = async sel => { try { await page.click(sel, { timeout: 1500 }); return true; } catch { return false; } };
-    const btn = name => page.locator('#actions button', { hasText: name });
+    // stabilni selektori (#id), ne tekst dugmeta
+const IDS = { Predlog: '#suggestBtn', Otvori: '#openBtn', Spusti: '#meldBtn', Odbaci: '#discardBtn', Vrati: '#returnBtn' };
+    const btn = name => page.locator(IDS[name]);
 
     while (Date.now() - t0 < 300_000) {
       if (await page.locator('#dealEnd[open]').count()) {

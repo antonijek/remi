@@ -1,6 +1,6 @@
 # Remi 51
 
-Web aplikacija za Remi 51 (vi + 1–3 računara). Isti principi kao `D:\lora` i `D:\preferans`:
+Web aplikacija za Remi 51: protiv računara (vi + 1–3 računara) ili online sa ljudima. Isti principi kao `D:\lora` i `D:\preferans`:
 čist TypeScript engine, AI odvojen od engine-a i tanak Vanilla JS UI.
 
 ## Status
@@ -13,7 +13,16 @@ Web aplikacija za Remi 51 (vi + 1–3 računara). Isti principi kao `D:\lora` i 
   U 30 mečeva sa 4 igrača je pobedio početnike (`easy`) u 100% mečeva (`npm run sim` u `engine/`).
 - ✅ UI: sto za 2–4 igrača, klik na špil/gomilu, priprema otvaranja sa zbirom poena,
   dopisivanje klikom na kombinaciju, dugme „Predlog“, sortiranje po boji/broju, čuvanje partije
-- ⏳ Online (na zajedničkom jezgru sa lorom), jači AI (Monte Carlo kao u lori)
+- ✅ Pravila ponovo proverena 2026-10-30 (7 izvora, docs/PRAVILA_IZVORI.md): kad nestane špila gomila se okreće
+  bez mešanja; na niz posle otvaranja sme još džokera (otvaranje i komplet: najviše jedan)
+- ✅ Prave karte (CC0 set kao Preferans/Lora/Tablić + džokeri iz istog seta, WebP), app.js podeljen na ui/ module,
+  potez kao podatak (engine/src/actions.ts: parseAction, applyAction) — isti put za računar, klijent i server
+- ✅ Online sa ljudima (server/ kopiran iz Tablića, razlikuje se samo server/src/game.ts): prijava istim nalogom kao
+  Preferans i Lora, lobi, sobe za 2–4, link za poziv ?soba=KOD, računar na praznim mestima i za igrača bez veze,
+  rejting (manje poena = bolje), chat, sobe prežive restart. Testovi: cd server && npm test, npm run test:online
+- ✅ PWA (manifest, sw.js, ikonice), SEO (canonical, OG, JSON-LD, robots, sitemap)
+- ⏳ Objava na remi.igrajmo.online: čeka DNS zapis (A, remi, 213.199.32.240), pa sh tools/deploy.sh --setup
+- ⏳ Jači AI (Monte Carlo kao u Lori)
 
 ## Pravila
 Vidi [pravila.html](pravila.html). Izvori: forestrummy.com (uputstvo), igre.games (Remi 51).

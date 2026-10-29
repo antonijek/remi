@@ -308,12 +308,15 @@ export class RemiGame {
     s.phase = 'DRAW';
   }
 
-  /** Špil prazan: gomila (bez gornje karte) se promeša u novi špil. */
+  /**
+   * Špil prazan: gomila (bez gornje karte) se okrene licem nadole BEZ mešanja i postaje novi
+   * špil (igra-razbibriga, Wikipedija) — prva odbačena karta je sad na vrhu špila.
+   */
   private reshuffle(): void {
     const s = this.state;
     if (s.discard.length <= 1) return;
     const top = s.discard.pop()!;
-    s.stock = shuffle(s.discard, this.rng);
+    s.stock = s.discard.reverse();
     s.discard = [top];
   }
 

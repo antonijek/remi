@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://remi.igrajmo.online/sitemap.xml
