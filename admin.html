@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Remi — admin</title>
+  <link rel="stylesheet" href="./remi.css">
+  <style>
+    body { display: block; height: auto; overflow: auto; }
+    .admin { max-width: 960px; margin: 0 auto; padding: 16px; }
+    .admin .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .admin .result { background: var(--dialog-bg); color: var(--dialog-ink); border-radius: 10px; margin: 8px 0 16px; }
+    .admin .result .btn { color: var(--dialog-ink); border-color: rgba(0, 0, 0, .2); padding: 4px 10px; }
+    .admin a { color: var(--accent); }
+    .admin table { width: 100%; border-collapse: collapse; }
+    .admin th, .admin td { padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(127, 127, 127, .25); }
+  </style>
+</head>
+<body data-token-key="remi_token">
+  <main class="admin">
+    <h1>Remi — admin</h1>
+    <p class="note">Ista prijava kao u igri (🌐). Banovanje naloga je u Preferans adminu i važi za sve igre. <a href="./">Nazad na igru</a></p>
+    <div class="row">
+      <button class="btn primary" data-tab="overview" id="tabOverview">Pregled</button>
+      <button class="btn" data-tab="players" id="tabPlayers">Igrači</button>
+      <button class="btn" data-tab="rooms" id="tabRooms">Sobe uživo</button>
+      <button class="btn" data-tab="matches" id="tabMatches">Mečevi</button>
+      <button class="btn ghost" id="refreshBtn">Osveži</button>
+    </div>
+    <p id="msg" class="lobby-msg" role="alert" hidden></p>
+    <div id="content"></div>
+  </main>
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>

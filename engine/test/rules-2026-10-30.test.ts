@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cardFromId } from '../src/cards.js';
 import { buildMeld, extendMeld, swapJoker } from '../src/melds.js';
-import { RemiGame } from '../src/game.js';
+import { RemiGame, maxDeals } from '../src/game.js';
 import type { Meld } from '../src/types.js';
 
 const cards = (s: string) => s.split(' ').map(cardFromId);
@@ -56,4 +56,38 @@ test('prazan špil: gomila se okrene bez mešanja, gornja karta ostaje na gomili
   const after = g2.getState();
   assert.deepEqual(after.discard.map(c => c.id), ['9H2']);
   assert.deepEqual(after.stock.map(c => c.id), ['4S1', '3D1']);
+});
+
+test('gomila se okreće najviše dva puta, posle toga partija ide bez pobednika', () => {
+  const g = new RemiGame({ players: 2, seed: 4 });
+  const s = g.getState();
+  const keep = new Set(['2C1', '3D1', '9H2']);
+  s.hands = s.hands.map(h => h.filter(c => !keep.has(c.id)));
+  s.stock = [];
+  s.discard = ['2C1', '3D1', '9H2'].map(cardFromId);
+  s.phase = 'DRAW';
+  s.tookDiscard = null;
+  s.takenCard = null;
+  s.stockFlips = 2;
+  const g2 = RemiGame.fromState(s);
+  assert.equal(g2.drawStock(s.turn), null);
+  const after = g2.getState();
+  assert.equal(after.phase === 'DEAL_END' || after.phase === 'MATCH_END', true);
+  assert.equal(after.history.at(-1)!.winner, null);
+});
+
+test('meč se završava posle 4/3/2 deljenja po igraču (zoki.com) ili na 501; pobeđuje najmanji zbir', () => {
+  assert.deepEqual([2, 3, 4].map(maxDeals), [8, 9, 8]);
+  const g = new RemiGame({ players: 2, seed: 5 });
+  const s = g.getState();
+  s.dealNo = 8;
+  s.scores = [-120, -60];
+  s.hands = [[], s.hands[1]];
+  s.opened = [true, true];
+  s.phase = 'PLAY';
+  const g2 = RemiGame.fromState(s);
+  (g2 as unknown as { endDeal(w: number, h: boolean): void }).endDeal(0, false);
+  const after = g2.getState();
+  assert.equal(after.phase, 'MATCH_END');
+  assert.deepEqual(after.winners, [0]);
 });

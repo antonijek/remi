@@ -33,6 +33,10 @@ export async function initDb(): Promise<void> {
     rating_deltas_json TEXT NOT NULL,
     history_json TEXT NOT NULL
   )`);
+  // statistika za admin panel: ko je igrao kog dana i koliko je posetilaca otvorilo igru
+  // (visitor je nasumičan id iz pregledača — bez ličnih podataka, broje se i oni bez naloga)
+  db.run(`CREATE TABLE IF NOT EXISTS player_days (user_id INTEGER NOT NULL, day TEXT NOT NULL, PRIMARY KEY (user_id, day))`);
+  db.run(`CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, visitor TEXT NOT NULL, PRIMARY KEY (day, visitor))`);
   db.run(`CREATE TABLE IF NOT EXISTS active_rooms (
     code TEXT PRIMARY KEY,
     state_json TEXT NOT NULL,
@@ -134,4 +138,48 @@ export function deleteActiveRoom(code: string): void {
 
 export function getAllActiveRooms(): { code: string; state_json: string }[] {
   return all('SELECT code, state_json FROM active_rooms');
+}
+
+// ---------------------------------------------------------------- admin statistika
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+export function markActive(userId: number): void {
+  db.run('INSERT OR IGNORE INTO player_days (user_id, day) VALUES (?, ?)', [userId, today()]);
+  persist();
+}
+
+export function recordVisit(visitor: string): void {
+  db.run('INSERT OR IGNORE INTO visits (day, visitor) VALUES (?, ?)', [today(), visitor]);
+  persist();
+}
+
+const since = (days: number) => new Date(Date.now() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
+const count = (sql: string, params: (string | number)[]) => one<{ n: number }>(sql, params)?.n ?? 0;
+
+export function adminOverview() {
+  const window = (days: number) => ({
+    players: count('SELECT COUNT(DISTINCT user_id) AS n FROM player_days WHERE day >= ?', [since(days)]),
+    visitors: count('SELECT COUNT(DISTINCT visitor) AS n FROM visits WHERE day >= ?', [since(days)]),
+    matches: count("SELECT COUNT(*) AS n FROM match_log WHERE substr(ended_at, 1, 10) >= ?", [since(days)]),
+  });
+  const days = all<{ day: string; players: number; visitors: number; matches: number }>(`
+    WITH d(day) AS (SELECT day FROM visits UNION SELECT day FROM player_days UNION SELECT substr(ended_at, 1, 10) FROM match_log)
+    SELECT day,
+      (SELECT COUNT(*) FROM player_days p WHERE p.day = d.day) AS players,
+      (SELECT COUNT(*) FROM visits v WHERE v.day = d.day) AS visitors,
+      (SELECT COUNT(*) FROM match_log m WHERE substr(m.ended_at, 1, 10) = d.day) AS matches
+    FROM d WHERE day >= ? ORDER BY day DESC`, [since(30)]);
+  return {
+    totalPlayers: count('SELECT COUNT(*) AS n FROM remi_players', []),
+    today: window(1), week: window(7), month: window(30), days,
+  };
+}
+
+export function adminPlayers(): { user_id: number; name: string; rating: number; games_played: number; last_seen: string }[] {
+  return all('SELECT user_id, name, rating, games_played, last_seen FROM remi_players ORDER BY last_seen DESC LIMIT 300');
+}
+
+export function recentMatches(limit = 50): { id: number; room_code: string; ended_at: string; players: number; rated: number; seats_json: string; scores_json: string; rating_deltas_json: string }[] {
+  return all('SELECT id, room_code, ended_at, players, rated, seats_json, scores_json, rating_deltas_json FROM match_log ORDER BY id DESC LIMIT ?', [limit]);
 }

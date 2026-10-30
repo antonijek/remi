@@ -23,6 +23,8 @@ const MIME = {
 };
 
 createServer(async (req, res) => {
+  // samo za razvoj: brojač poseta i sl. — pravi server je server/
+  if (req.method === 'POST' && req.url.startsWith('/api/')) { res.writeHead(204); res.end(); return; }
   let path = decodeURIComponent(req.url.split('?')[0]);
   if (path === '/') path = '/remi.html';
   const filePath = normalize(join(ROOT, path));

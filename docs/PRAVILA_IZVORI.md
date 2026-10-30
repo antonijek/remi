@@ -42,3 +42,5 @@ Ponovo pročitano 7 izvora (zoki, forestrummy, mycity, kakoas, legalbet, igra-ra
 | Više džokera | pri otvaranju najviše jedan (zoki, forestrummy); na niz posle otvaranja „može ih biti više“ (zoki), „bilo koji broj“ (forestrummy) | otvaranje i komplet: jedan; niz posle otvaranja: više |
 Potvrđeno bez izmena: 15/14 karata, otvaranje 51 odjednom, uzeta karta sa gomile pre otvaranja mora u otvaranje, kec 10 (1 u A-2-3), slike 10, džoker u ruci 20, pobednik −40, neotvoren 100, hand −140 i ostali ×2, meč do 501.
 Nije uvedeno: „hand karta“ ispod sečenja, sahranjivanje džokera uz drugu kartu, suvi hand −280 ×4.
+
+Dopuna istog dana (otkriveno merenjem AI-ja): u dvoje meč do 501 nikad nije završavao (pobednik −40, gubitnik malo plaća, oba zbira idu u minus). Uvedeno pravilo sa zoki.com: meč traje svako po 4 deljenja u dvoje, po 3 u troje, po 2 u četvoro, ili do 501 — šta pre. Okretanje gomile bez mešanja ograničeno na 2 puta po partiji (inače bi se karte vrtele istim redom unedogled); posle toga partija bez pobednika.

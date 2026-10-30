@@ -62,6 +62,8 @@ export interface RemiState {
   stock: Card[];
   /** Gomila odbačenih — poslednja je na vrhu. */
   discard: Card[];
+  /** Koliko puta je u ovoj partiji gomila okrenuta u novi špil (vidi MAX_STOCK_FLIPS). */
+  stockFlips?: number;
   melds: Meld[];
   nextMeldId: number;
   opened: boolean[];

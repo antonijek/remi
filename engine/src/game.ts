@@ -13,6 +13,20 @@ export const WIN_POINTS = -40;
 // −140 i ostalima duplo: zoki.com i mycity.rs (forestrummy navodi −80 — manjina)
 export const HAND_REMI_POINTS = -140;
 export const UNOPENED_POINTS = 100;
+/**
+ * Koliko puta se u jednoj partiji gomila okreće u novi špil. Bez mešanja se karte vraćaju istim
+ * redom, pa bi partija u kojoj niko ne može da završi trajala unedogled; posle toga se partija
+ * završava bez pobednika (svi plaćaju karte iz ruke).
+ */
+export const MAX_STOCK_FLIPS = 2;
+/**
+ * Meč traje dok svako ne podeli ovoliko puta (zoki.com: u dvoje po 4, u troje po 3, u četvoro po 2)
+ * ili dok neko ne dostigne 501 — šta pre. Bez ovoga u dvoje oba zbira idu u minus (pobednik −40)
+ * i meč se nikad ne završi.
+ */
+export const DEALS_PER_PLAYER: Record<number, number> = { 2: 4, 3: 3, 4: 2 };
+
+export const maxDeals = (players: number): number => players * (DEALS_PER_PLAYER[players] ?? 2);
 
 export class RemiError extends Error {}
 
@@ -112,7 +126,7 @@ export class RemiGame {
   drawStock(p: number): Card | null {
     this.expect(p, 'DRAW');
     const s = this.state;
-    if (s.stock.length === 0) this.reshuffle();
+    if (s.stock.length === 0 && (s.stockFlips ?? 0) < MAX_STOCK_FLIPS) this.reshuffle();
     if (s.stock.length === 0) {
       this.endDeal(null, false);
       return null;
@@ -285,6 +299,7 @@ export class RemiGame {
     s.hands = Array.from({ length: n }, (_, p) => sortBySuit(deck.splice(0, p === starter ? HAND_SIZE + 1 : HAND_SIZE)));
     s.stock = deck;
     s.discard = [];
+    s.stockFlips = 0;
     s.melds = [];
     s.nextMeldId = 1;
     s.opened = Array(n).fill(false);
@@ -318,6 +333,7 @@ export class RemiGame {
     const top = s.discard.pop()!;
     s.stock = s.discard.reverse();
     s.discard = [top];
+    s.stockFlips = (s.stockFlips ?? 0) + 1;
   }
 
   private endDeal(winner: number | null, handRemi: boolean): void {
@@ -332,7 +348,7 @@ export class RemiGame {
     const result: DealResult = { dealNo: s.dealNo, winner, handRemi, points };
     s.history.push(result);
     s.tookDiscard = null;
-    if (Math.max(...s.scores) >= this.targetScore) {
+    if (Math.max(...s.scores) >= this.targetScore || s.dealNo >= maxDeals(s.playerCount)) {
       const min = Math.min(...s.scores);
       s.winners = s.scores.map((sc, p) => (sc === min ? p : -1)).filter(p => p >= 0);
       s.phase = 'MATCH_END';

@@ -11,6 +11,7 @@ import { renderActions } from './ui/actions.js';
 import { fillDealEnd, renderSheet } from './ui/deal-end.js';
 import { loadGame, saveGame } from './ui/storage.js';
 import { toast } from './ui/toast.js';
+import { countVisit } from './ui/visit.js';
 import { initOnline } from './online.js';
 
 const FAST = new URLSearchParams(location.search).has('fast');
@@ -255,6 +256,8 @@ if (saved) {
 } else {
   newGame();
 }
+
+countVisit('remi');
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(e => console.error('Rad bez interneta nije uključen:', e));

@@ -4,7 +4,8 @@ import path from 'node:path';
 import express from 'express';
 import compression from 'compression';
 import { Server as SocketIOServer } from 'socket.io';
-import { initDb, flushPersist, topPlayers } from './db.js';
+import { initDb, flushPersist, topPlayers, recordVisit } from './db.js';
+import { adminRouter } from './admin.js';
 import { authRouter } from './auth.js';
 import { registerSocketHandlers } from './socket.js';
 import { allRooms, loadPersistedRooms, removeAbandonedRooms, status } from './rooms.js';
@@ -17,7 +18,7 @@ const PROJECT_ROOT = path.resolve(import.meta.dirname, '../..');
 // Javno je SAMO ono što treba pregledaču — nikad server/ (baza, .env), docs/, alati, izvorni kod.
 const PUBLIC = new RegExp('^/(?:' + [
   String.raw`remi\.html`, String.raw`pravila\.html`, String.raw`app\.js`, String.raw`online\.js`, String.raw`remi\.css`,
-  String.raw`sw\.js`, String.raw`manifest\.json`, String.raw`robots\.txt`, String.raw`sitemap\.xml`,
+  String.raw`sw\.js`, String.raw`admin\.html`, String.raw`admin\.js`, String.raw`manifest\.json`, String.raw`robots\.txt`, String.raw`sitemap\.xml`,
   String.raw`ui/[a-z-]+\.js`, String.raw`engine/dist/[a-z]+\.js`,
   String.raw`icons/(?:icon\.svg|icon-[a-z0-9-]+\.png|og-image\.jpg)`, String.raw`icons/cards/[0-9A-Za-z-]+\.webp`,
 ].join('|') + ')?$');
@@ -50,6 +51,13 @@ async function main(): Promise<void> {
   });
   app.use('/api', authRouter);
   app.get('/api/leaderboard', (_req, res) => res.json({ players: topPlayers(20) }));
+  // Brojač posetilaca (i onih bez naloga, protiv računara) — nasumičan id iz pregledača, bez ličnih podataka.
+  app.post('/api/visit', (req, res) => {
+    const v = req.body?.v;
+    if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v)) recordVisit(v);
+    res.status(204).end();
+  });
+  app.use('/api/admin', adminRouter);
 
   const httpServer = http.createServer(app);
   const io = new SocketIOServer(httpServer, { cors: { origin: true } });

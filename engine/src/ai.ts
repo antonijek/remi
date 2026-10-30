@@ -206,9 +206,15 @@ function wantsDiscard(view: PlayerView, top: Card, level: AiLevel = 'medium'): b
 
 /** Karta za odbacivanje: najmanje obećava, a među takvima najskuplja. */
 export function chooseDiscard(view: PlayerView, level: AiLevel, rng: () => number): CardId {
+  const pool = legalDiscards(view.hand, view.takenCard);
+  if (level === 'easy') return pool[Math.floor(rng() * pool.length)].id;
+  return rankDiscards(view, level)[0];
+}
+
+/** Sve dozvoljene karte za odbacivanje, od najbolje ka najgoroj (pretraga proverava prvih nekoliko). */
+export function rankDiscards(view: PlayerView, level: AiLevel = 'hard'): CardId[] {
   const hand = view.hand;
   const pool = legalDiscards(hand, view.takenCard);
-  if (level === 'easy') return pool[Math.floor(rng() * pool.length)].id;
 
   // karte u najboljim kombinacijama se čuvaju
   const plan = bestMelds(hand, { keep: 0 });
@@ -218,8 +224,7 @@ export function chooseDiscard(view: PlayerView, level: AiLevel, rng: () => numbe
   const next = (view.me + 1) % n;
   // koliko je najbliži protivnik blizu kraja (manje karata = veća opasnost)
   const minOpp = Math.min(...view.handCounts.filter((_, p) => p !== view.me));
-  let best = pool[0];
-  let bestScore = Infinity;
+  const scored: { id: CardId; score: number }[] = [];
   for (const c of pool) {
     let score = inMeld.has(c.id) ? 1000 : 0;
     score += promise(c, hand) * 12;
@@ -238,9 +243,9 @@ export function chooseDiscard(view: PlayerView, level: AiLevel, rng: () => numbe
       score -= penaltyPoints(c);
       if (view.melds.some(m => extendMeld(m, [c]))) score += 15;
     }
-    if (score < bestScore) { bestScore = score; best = c; }
+    scored.push({ id: c.id, score });
   }
-  return best.id;
+  return scored.sort((x, y) => x.score - y.score).map(x => x.id);
 }
 
 /** Koliko karta "obećava": parovi istog ranga i susedi iste boje. */

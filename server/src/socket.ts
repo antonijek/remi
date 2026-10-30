@@ -3,7 +3,7 @@
 
 import type { Server, Socket } from 'socket.io';
 import { verifyToken, fetchMe } from './auth.js';
-import { getRating, upsertPlayer } from './db.js';
+import { getRating, markActive, upsertPlayer } from './db.js';
 import { applyAction, isPlayerCount, newGame } from './game.js';
 import { broadcast, buildState, startNextDeal } from './driver.js';
 import { markOnline, markOffline, listOnlineUsers, getSocketIdsForUser } from './presence.js';
@@ -116,6 +116,7 @@ export function registerSocketHandlers(io: Server): void {
   io.on('connection', (socket: Socket) => {
     const userId: number = socket.data.userId;
     upsertPlayer(userId, socket.data.name);
+    markActive(userId);
     wrapSocketErrors(socket);
     // Jedan uređaj u isto vreme: stariji dobija poruku i prekida se (inače bi ostao sa zastarelim stolom).
     for (const sid of getSocketIdsForUser(userId)) {

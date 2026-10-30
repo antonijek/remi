@@ -2,11 +2,11 @@
 // (da se nova verzija vidi odmah), a keš se koristi samo kad mreže nema. Karte se ne
 // menjaju, pa se one uzimaju iz keša. Posle promene karata ili spiska fajlova podići CACHE.
 
-const CACHE = 'remi-v1';
+const CACHE = 'remi-v2';
 const SUITS = ['S', 'H', 'D', 'C'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const ENGINE = ['index', 'types', 'cards', 'melds', 'game', 'ai', 'actions'];
-const UI = ['cards', 'seats', 'table', 'hand', 'actions', 'deal-end', 'storage', 'toast', 'rotate', 'online-lobby'];
+const UI = ['cards', 'seats', 'table', 'hand', 'actions', 'deal-end', 'storage', 'toast', 'rotate', 'online-lobby', 'visit'];
 
 const CORE = [
   './', './remi.html', './pravila.html', './remi.css', './app.js', './online.js', './manifest.json', './icons/icon.svg',
