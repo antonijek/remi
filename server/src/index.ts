@@ -6,6 +6,7 @@ import compression from 'compression';
 import { Server as SocketIOServer } from 'socket.io';
 import { initDb, flushPersist, topPlayers, recordVisit } from './db.js';
 import { adminRouter } from './admin.js';
+import { registerSeo } from './seo.js';
 import { authRouter } from './auth.js';
 import { registerSocketHandlers } from './socket.js';
 import { allRooms, loadPersistedRooms, removeAbandonedRooms, status } from './rooms.js';
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
   app.set('trust proxy', 1); // nginx → prava IP adresa za ograničenje pokušaja
   app.use(express.json());
   app.use(compression());
+  registerSeo(app); // pre allowlist-e: ključ za IndexNow
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || PUBLIC.test(req.path)) return next();
     res.status(404).end();

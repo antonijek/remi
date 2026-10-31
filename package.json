@@ -10,7 +10,8 @@
     "serve": "node tools/serve.js",
     "test:ui": "node tools/browser-smoke-test.mjs",
     "test:online": "node tools/online-ui-test.mjs",
-    "deploy": "sh tools/deploy.sh"
+    "deploy": "sh tools/deploy.sh",
+    "indexnow": "node tools/notify-indexnow.mjs"
   },
   "devDependencies": {
     "playwright": "^1.62.1"
