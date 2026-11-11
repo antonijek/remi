@@ -2,8 +2,10 @@
 // ({ type: 'draw' | 'take' | 'meld' | ... }) i ide kroz act(): protiv računara se primeni na
 // igru ovde, a u online igri (online.js) šalje serveru.
 
-import { RemiGame, RemiError, applyAction, chooseAction, bestMelds, swapJoker, extendMeld, penaltyPoints } from './engine/dist/index.js';
-import { cardName } from './ui/cards.js';
+import { RemiGame, RemiError, applyAction, penaltyPoints } from './engine/dist/index.js';
+import { aiMove } from './ui/ai-turn.js';
+import { layoffAction, suggestMove } from './ui/suggest.js';
+import { showOnlineDealEnd } from './ui/online-end.js';
 import { ME, playerName, renderSeats } from './ui/seats.js';
 import { renderMelds, renderPiles, renderStaged } from './ui/table.js';
 import { renderHand } from './ui/hand.js';
@@ -146,41 +148,15 @@ function humanAct(action, done = () => undefined) {
 }
 
 function layoffOrSwap(meldId) {
-  const v = view();
-  const ids = [...ui.selected];
-  const meld = v.melds.find(m => m.id === meldId);
-  // jedna karta koja menja džokera (a ne može da se dopiše) → zamena
-  if (ids.length === 1) {
-    const c = v.hand.find(x => x.id === ids[0]);
-    if (c && swapJoker(meld, c) && !extendMeld(meld, [c])) {
-      humanAct({ type: 'swap', meldId, cardId: c.id }, () => { toast('Uzeli ste džokera!'); ui.selected.clear(); });
-      return;
-    }
-  }
-  humanAct({ type: 'layoff', meldId, cardIds: ids }, () => ui.selected.clear());
+  const action = layoffAction(view(), [...ui.selected], meldId);
+  humanAct(action, () => {
+    if (action.type === 'swap') toast('Uzeli ste džokera!');
+    ui.selected.clear();
+  });
 }
 
 function suggest() {
-  const v = view();
-  if (!v.opened[ME]) {
-    const plan = bestMelds(v.hand, { mustInclude: v.tookDiscard });
-    if (plan.points >= v.openingPoints) {
-      ui.staged = plan.groups;
-      ui.selected.clear();
-      toast(`Možete da se otvorite sa ${plan.points} poena.`);
-    } else {
-      toast(plan.points ? `Najviše ${plan.points} poena — još nije dovoljno za otvaranje.` : 'Nema kombinacija u ruci.');
-      const a = chooseAction(v, 'hard');
-      if (a.type === 'discard') ui.selected = new Set([a.cardId]);
-    }
-  } else {
-    const a = chooseAction(v, 'hard');
-    ui.selected = new Set(a.type === 'meld' ? a.groups[0] : a.type === 'layoff' ? a.cardIds
-      : a.type === 'swap' || a.type === 'discard' ? [a.cardId] : []);
-    const msg = { meld: 'Predlog: spustite ovu kombinaciju.', layoff: 'Predlog: dopišite ovu kartu na sto.',
-      swap: 'Predlog: ovom kartom uzmite džokera sa stola.', discard: 'Predlog: odbacite ovu kartu.' }[a.type];
-    if (msg) toast(msg);
-  }
+  suggestMove(view(), ui, ME, toast);
   render();
 }
 
@@ -192,25 +168,6 @@ function after() {
   step();
 }
 
-function aiMove(p) {
-  const v = game.getPlayerView(p);
-  const a = chooseAction(v, 'hard');
-  const name = playerName(p);
-  try {
-    const card = applyAction(game, p, a);
-    if (a.type === 'take') toast(`${name} uzima ${cardName(card)} sa gomile`);
-    if (a.type === 'meld' && !v.opened[p]) toast(`${name} se otvorio!`);
-    if (a.type === 'swap') toast(`${name} uzima džokera sa stola`);
-  } catch (e) {
-    // AI ne bi smeo da pogreši — ako ipak, vuče ili odbaci bilo šta, da igra ne stane
-    console.error('AI potez odbijen', a, e);
-    const hand = game.getState().hands[p];
-    const fallback = hand.find(c => !c.joker) ?? hand[0];
-    if (game.getState().phase === 'DRAW') game.drawStock(p);
-    else if (fallback) game.discard(p, fallback.id);
-  }
-}
-
 function step() {
   clearTimeout(timer);
   if (online?.active) return;
@@ -218,7 +175,7 @@ function step() {
   if (s.phase === 'DEAL_END' || s.phase === 'MATCH_END') { showDealEnd(); return; }
   if (s.turn === ME) return;
   timer = setTimeout(() => {
-    aiMove(s.turn);
+    aiMove(game, s.turn, toast);
     save();
     render();
     step();
@@ -291,22 +248,7 @@ online = initOnline({
     step();
   },
   newTurnState: () => { ui.selected.clear(); },
-  dealEnd: (v, room) => {
-    fillDealEnd(v);
-    $('shareBtn').hidden = true;
-    const btn = $('nextDealBtn');
-    btn.disabled = false;
-    if (v.phase === 'MATCH_END') {
-      const r = room.rating;
-      const d = r?.deltas[room.mySeat] ?? 0;
-      $('dealEndNote').textContent += r?.rated ? ` Rejting: ${d >= 0 ? '+' : ''}${d} → ${r.newRatings[room.mySeat]}.`
-        : ' Meč nije rangiran (rangirano je kad za stolom sede bar dva čoveka).';
-      btn.textContent = 'Nazad u lobi';
-    } else {
-      btn.textContent = 'Dalje';
-    }
-    if (!$('dealEnd').open) $('dealEnd').showModal();
-  },
+  dealEnd: showOnlineDealEnd,
   closeDealEnd: () => { if ($('dealEnd').open) $('dealEnd').close(); },
 });
 
