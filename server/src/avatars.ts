@@ -5,10 +5,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Request } from 'express';
 import { Router } from 'express';
-import { verifyToken, fetchMe } from './auth.js';
-import type { Me } from './auth.js';
+import { whoIs } from './auth.js';
 import { one, run, upsertPlayer } from './db.js';
 import { notifyOwner } from './push.js';
 
@@ -48,18 +46,6 @@ export function removeAvatar(userId: number): void {
 }
 
 export const avatarRouter = Router();
-
-async function whoIs(req: Request): Promise<Me | null> {
-  const token = String(req.headers.authorization ?? '').replace(/^Bearer /, '');
-  try {
-    const { userId } = verifyToken(token);
-    const m = await fetchMe(token);
-    return m && m.id === userId ? m : null;
-  } catch (e) {
-    console.debug('[avatar] prijava nije važeća:', (e as Error).message);
-    return null;
-  }
-}
 
 /** Adresa moje slike (klijent je traži posle prijave). */
 avatarRouter.get('/mine', async (req, res) => {

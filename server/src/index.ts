@@ -10,6 +10,7 @@ import { registerSeo } from './seo.js';
 import { feedbackRouter } from './feedback.js';
 import { initPush } from './push.js';
 import { avatarRouter } from './avatars.js';
+import { leaguesRouter } from './leagues.js';
 import { authRouter } from './auth.js';
 import { registerSocketHandlers } from './socket.js';
 import { allRooms, loadPersistedRooms, removeAbandonedRooms, status } from './rooms.js';
@@ -65,6 +66,7 @@ async function main(): Promise<void> {
   });
   app.use('/api/feedback', feedbackRouter);
   app.use('/api/avatar', avatarRouter);
+  app.use('/api/leagues', leaguesRouter);
   app.use('/api/admin', adminRouter);
 
   const httpServer = http.createServer(app);

@@ -21,6 +21,7 @@ import { countVisit } from './ui/visit.js';
 import { initFeedback } from './ui/feedback.js';
 import { initInstall } from './ui/install.js';
 import { initAvatar } from './ui/avatar.js';
+import { initLeagues } from './ui/leagues.js';
 import { initOnline } from './online.js';
 
 const FAST = new URLSearchParams(location.search).has('fast');
@@ -268,6 +269,7 @@ if (new URLSearchParams(location.search).has('izazov')) startDaily();
 countVisit('remi');
 initFeedback({ token: () => online.token() });
 initInstall();
+initLeagues({ token: () => online.token(), toast });
 refreshAvatar = initAvatar({ token: () => online.token(), name: () => online.me()?.name, changed: render });
 
 if ('serviceWorker' in navigator) {

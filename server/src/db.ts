@@ -58,6 +58,23 @@ export async function initDb(): Promise<void> {
     sub_json TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+  // zatvorene lige (leagues.ts): ulazi se kodom; tabela se računa iz match_log (standings.ts)
+  db.run(`CREATE TABLE IF NOT EXISTS leagues (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    owner_id INTEGER NOT NULL,
+    scoring TEXT NOT NULL DEFAULT 'places',
+    rank_by TEXT NOT NULL DEFAULT 'total',
+    norma INTEGER NOT NULL DEFAULT 5,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS league_members (
+    league_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (league_id, user_id)
+  )`);
   db.run(`CREATE TABLE IF NOT EXISTS active_rooms (
     code TEXT PRIMARY KEY,
     state_json TEXT NOT NULL,
@@ -209,4 +226,13 @@ export function adminPlayers(): { user_id: number; name: string; rating: number;
 
 export function recentMatches(limit = 50): { id: number; room_code: string; ended_at: string; players: number; rated: number; seats_json: string; scores_json: string; rating_deltas_json: string }[] {
   return all('SELECT id, room_code, ended_at, players, rated, seats_json, scores_json, rating_deltas_json FROM match_log ORDER BY id DESC LIMIT ?', [limit]);
+}
+
+/** Završeni mečevi u kojima su sva mesta imala naloge (za tabelu lige). */
+export function finishedMatches(): { userIds: (number | null)[]; scores: number[] }[] {
+  return all<{ seats_json: string; scores_json: string }>('SELECT seats_json, scores_json FROM match_log ORDER BY id')
+    .map(r => ({
+      userIds: (JSON.parse(r.seats_json) as { userId: number | null }[]).map(x => x.userId),
+      scores: JSON.parse(r.scores_json) as number[],
+    }));
 }

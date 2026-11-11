@@ -61,6 +61,7 @@
       <div id="lobbyPanel" class="panel" hidden>
         <p>Zdravo, <b id="meName"></b> · rejting <b id="meRating">1000</b> <button id="avatarBtn" class="btn ghost" type="button">📷 Slika</button></p>
         <button id="quickBtn" class="btn primary">⚡ Brza igra</button>
+        <button id="leagueBtn" class="btn">🏆 Lige</button>
         <div class="row">
           <select id="newRoomPlayers" aria-label="Broj igrača">
             <option value="2">2 igrača</option><option value="3">3 igrača</option><option value="4" selected>4 igrača</option>
@@ -107,6 +108,13 @@
       <p id="feedbackError" class="error" role="alert"></p>
       <div class="dialog-buttons"><button id="feedbackSend" class="btn primary" type="submit">Pošalji</button><button id="feedbackClose" class="btn ghost" type="button">Zatvori</button></div>
     </form>
+  </dialog>
+
+  <dialog id="leagueDlg">
+    <h2 id="leagueTitle">Lige</h2>
+    <div id="leagueBody"></div>
+    <p id="leagueError" class="error" role="alert"></p>
+    <div class="dialog-buttons"><button id="leagueClose" class="btn ghost" type="button">Zatvori</button></div>
   </dialog>
 
   <dialog id="avatarDlg">

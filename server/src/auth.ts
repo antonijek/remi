@@ -3,6 +3,7 @@
 // tajnim ključem, (3) pita /api/me za ime + ban proveru pri svakoj konekciji.
 
 import { Router } from 'express';
+import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { rateLimit } from './rateLimit.js';
 
@@ -16,6 +17,19 @@ function jwtSecret(): string {
 
 export function verifyToken(token: string): { userId: number } {
   return jwt.verify(token, jwtSecret()) as { userId: number };
+}
+
+/** Prijavljeni igrač iz zaglavlja Authorization (ili null) — za obične API rute. */
+export async function whoIs(req: Request): Promise<Me | null> {
+  const token = String(req.headers.authorization ?? '').replace(/^Bearer /, '');
+  try {
+    const { userId } = verifyToken(token);
+    const m = await fetchMe(token);
+    return m && m.id === userId ? m : null;
+  } catch (e) {
+    console.debug('[auth] prijava nije važeća:', (e as Error).message);
+    return null;
+  }
 }
 
 export interface Me {

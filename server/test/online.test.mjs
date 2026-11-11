@@ -232,3 +232,31 @@ test('slika igrača: slanje, provere, prikaz, admin uklanjanje', async () => {
   assert.equal((await fetch(URL + '/' + url)).status, 404, 'posle uklanjanja nema slike');
   assert.equal((await (await fetch(URL + '/api/avatar/mine', { headers: auth(2) })).json()).url, null);
 });
+
+test('lige: pravljenje, ulazak kodom, tabela samo za članove, prava osnivača', async () => {
+  const auth = userId => ({ Authorization: 'Bearer ' + jwt.sign({ userId }, SECRET), 'Content-Type': 'application/json' });
+  const call = (method, p, userId, body) => fetch(URL + '/api/leagues' + p, {
+    method, headers: userId ? auth(userId) : { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
+  });
+  assert.equal((await call('GET', '', null)).status, 401, 'bez prijave nema liga');
+  assert.equal((await call('POST', '', 1, { name: 'X' })).status, 400, 'prekratak naziv');
+  assert.equal((await call('POST', '', 1, { name: 'Liga', norma: 500 })).status, 400, 'norma van opsega');
+  const made = await (await call('POST', '', 1, { name: 'Prva liga', norma: 2 })).json();
+  assert.match(made.code, /^[A-Z0-9]{6}$/);
+  assert.equal((await call('POST', '/join', 2, { code: 'NEMA00' })).status, 404);
+  assert.equal((await call('POST', '/join', 2, { code: made.code.toLowerCase() })).status, 200);
+  assert.equal((await call('GET', `/${made.id}`, 3)).status, 404, 'tabela je samo za članove');
+  const view = await (await call('GET', `/${made.id}`, 2)).json();
+  assert.equal(view.standings.length, 2);
+  assert.equal(view.league.code, undefined, 'kod vidi samo osnivač');
+  assert.equal((await (await call('GET', `/${made.id}`, 1)).json()).league.code, made.code);
+  assert.equal((await call('PATCH', `/${made.id}`, 2, { norma: 1 })).status, 403);
+  assert.equal((await call('PATCH', `/${made.id}`, 1, { norma: 1, rankBy: 'avg' })).status, 200);
+  assert.equal((await call('POST', `/${made.id}/kick`, 2, { userId: 1 })).status, 403);
+  assert.equal((await call('POST', `/${made.id}/leave`, 1)).status, 400, 'osnivač ne napušta');
+  assert.equal((await call('POST', `/${made.id}/kick`, 1, { userId: 2 })).status, 200);
+  assert.equal((await call('GET', `/${made.id}`, 2)).status, 404, 'izbačeni više ne vidi');
+  assert.equal((await call('DELETE', `/${made.id}`, 2)).status, 403);
+  assert.equal((await call('DELETE', `/${made.id}`, 1)).status, 200);
+  assert.equal((await (await call('GET', '', 1)).json()).leagues.length, 0);
+});
