@@ -7,6 +7,7 @@ import { getRating, markActive, upsertPlayer } from './db.js';
 import { applyAction, isPlayerCount, newGame } from './game.js';
 import { broadcast, buildState, startNextDeal } from './driver.js';
 import { markOnline, markOffline, listOnlineUsers, getSocketIdsForUser } from './presence.js';
+import { playerArrived } from './push.js';
 import {
   CHAT_LOG_LIMIT, clearUserLocation, createRoom, emptySeat, getRoom, getUserLocation, humanSeats,
   listOpenRooms, removeRoom, seatIndexes, setUserLocation, status,
@@ -104,6 +105,7 @@ export function registerSocketHandlers(io: Server): void {
       const me = await fetchMe(token);
       if (!me || me.id !== payload.userId) return next(new Error('Invalid auth token'));
       socket.data.userId = me.id;
+      socket.data.isAdmin = me.is_admin;
       socket.data.name = String(me.name || `igrač-${me.id}`).slice(0, 40);
       next();
     } catch (err) {
@@ -115,7 +117,7 @@ export function registerSocketHandlers(io: Server): void {
 
   io.on('connection', (socket: Socket) => {
     const userId: number = socket.data.userId;
-    upsertPlayer(userId, socket.data.name);
+    const isNew = upsertPlayer(userId, socket.data.name);
     markActive(userId);
     wrapSocketErrors(socket);
     // Jedan uređaj u isto vreme: stariji dobija poruku i prekida se (inače bi ostao sa zastarelim stolom).
@@ -123,7 +125,9 @@ export function registerSocketHandlers(io: Server): void {
       const old = io.sockets.sockets.get(sid);
       if (old && old.id !== socket.id) { old.emit('session:replaced'); old.disconnect(true); }
     }
+    const othersOnline = listOnlineUsers().filter(u => u.userId !== userId).length;
     markOnline(socket.id, userId, socket.data.name);
+    if (!socket.data.isAdmin) playerArrived(userId, socket.data.name, isNew, othersOnline);
 
     // Povratak za sto (osvežena stranica, pala veza, restart servera).
     const loc = getUserLocation(userId);

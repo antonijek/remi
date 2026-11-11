@@ -196,6 +196,8 @@ test('pohvale i primedbe: slanje, provere, obaveštenje vlasniku, admin spisak, 
   assert.equal(messages.find(m => m.email === 'neko@primer.rs').name, null);
   const sent = (await adminGet('/push/sent')).sent;
   assert.ok(sent.some(s => s.body.startsWith('Pera: Odlična igra!')), 'vlasnik dobija obaveštenje');
+  assert.ok(sent.some(s => s.title === 'Nov igrač u Remiju' && s.body.startsWith('Pera ')), 'vlasnik dobija obaveštenje o novom igraču');
+  assert.ok(!sent.some(s => s.body.startsWith('Admin')), 'za admina nema obaveštenja');
   const read = await fetch(URL + '/api/admin/feedback/' + byName.id + '/read', { method: 'POST', headers: { ...auth(9), 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal((await read.json()).unread, 1);
   const del = await fetch(URL + '/api/admin/feedback/' + byName.id, { method: 'DELETE', headers: auth(9) });

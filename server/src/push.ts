@@ -10,6 +10,10 @@ import { all, one, run } from './db.js';
 const DRY_RUN = !!process.env.PUSH_DRY_RUN;
 export const dryRunLog: { title: string; body: string }[] = [];
 
+/** Isti igrač „sam online“ najviše jednom u ovom periodu (osvežavanja i prekidi veze se ne broje). */
+const ALONE_COOLDOWN_MS = Number(process.env.ALONE_COOLDOWN_MS ?? 30 * 60 * 1000);
+const lastAlone = new Map<number, number>();
+
 let publicKey = '';
 
 export function initPush(): void {
@@ -62,4 +66,21 @@ export async function notifyOwner(title: string, body: string, url = '/'): Promi
     }
   }));
   return sent;
+}
+
+/**
+ * Igrač (ne admin) je ušao u online deo. Vlasniku javi ako je prvi put u Remiju ili ako je sam online
+ * (nema s kim da igra — da uđe i odigra). Poruke su bez roda: igra ne zna da li je igrač ili igračica.
+ */
+export function playerArrived(userId: number, name: string, isNew: boolean, othersOnline: number): void {
+  const alone = othersOnline === 0;
+  const now = Date.now();
+  const aloneAgain = alone && now - (lastAlone.get(userId) ?? 0) < ALONE_COOLDOWN_MS;
+  if (alone) lastAlone.set(userId, now);
+  const send = isNew
+    ? notifyOwner('Nov igrač u Remiju', alone ? `${name} je prvi put u Remiju i nema drugih igrača. Uđi da odigrate!` : `${name} je prvi put u Remiju.`)
+    : alone && !aloneAgain
+      ? notifyOwner('Neko čeka partiju', `${name} je online, a nema drugih igrača. Uđi da odigrate!`)
+      : null;
+  send?.catch(err => console.error('[PUSH]', err));
 }
