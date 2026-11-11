@@ -1,6 +1,9 @@
 // Admin panel: pregled, igrači, sobe uživo, mečevi. Prijava je ista kao u igri (token iz
 // pregledača; server proverava admin prava u Preferansu). Imena se upisuju kao tekst (bez HTML-a).
 
+import { feedbackView, showUnread } from './admin-feedback.js';
+import { initPush } from './admin-push.js';
+
 const KEY = document.body.dataset.tokenKey;
 const REFRESH_MS = 15000;
 const $ = id => document.getElementById(id);
@@ -22,7 +25,7 @@ function showError(msg) {
 }
 
 async function api(path, opts = {}) {
-  const res = await fetch(`/api/admin${path}`, { ...opts, headers: { Authorization: `Bearer ${token()}` } });
+  const res = await fetch(`/api/admin${path}`, { ...opts, headers: { ...opts.headers, Authorization: `Bearer ${token()}` } });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
@@ -61,6 +64,7 @@ const ago = ms => {
 
 async function overview() {
   const d = await api('/overview');
+  showUnread(d.feedbackUnread);
   const box = el('div');
   box.append(el('p', `Online sada: ${d.online.length ? d.online.map(u => `${u.name} (${u.rating})`).join(', ') : 'niko'}`));
   box.append(el('p', `Sobe: ${d.rooms.waiting} čeka, ${d.rooms.playing} igra · igrača sa nalogom ukupno: ${d.totalPlayers}`));
@@ -105,7 +109,7 @@ async function matches() {
   }));
 }
 
-const VIEWS = { overview, players, rooms, matches };
+const VIEWS = { overview, players, rooms, matches, feedback: () => feedbackView({ api, el, reload: load, showError }) };
 
 async function load() {
   clearTimeout(timer);
@@ -128,4 +132,6 @@ for (const b of document.querySelectorAll('[data-tab]')) {
   });
 }
 $('refreshBtn').addEventListener('click', load);
+initPush({ api, showError });
+if (location.hash === '#poruke') tab = 'feedback';
 load();

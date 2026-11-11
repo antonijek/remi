@@ -37,6 +37,24 @@ export async function initDb(): Promise<void> {
   // (visitor je nasumičan id iz pregledača — bez ličnih podataka, broje se i oni bez naloga)
   db.run(`CREATE TABLE IF NOT EXISTS player_days (user_id INTEGER NOT NULL, day TEXT NOT NULL, PRIMARY KEY (user_id, day))`);
   db.run(`CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, visitor TEXT NOT NULL, PRIMARY KEY (day, visitor))`);
+  // „Pohvale i primedbe“ (feedback.ts) i obaveštenja vlasniku na telefon (push.ts)
+  db.run(`CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    name TEXT,
+    email TEXT,
+    text TEXT NOT NULL,
+    device TEXT,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  db.run('CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)');
+  db.run(`CREATE TABLE IF NOT EXISTS push_subs (
+    endpoint TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    sub_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
   db.run(`CREATE TABLE IF NOT EXISTS active_rooms (
     code TEXT PRIMARY KEY,
     state_json TEXT NOT NULL,
@@ -65,7 +83,7 @@ export function flushPersist(): void {
   if (db) writeNow();
 }
 
-function one<T>(sql: string, params: (string | number)[]): T | null {
+export function one<T>(sql: string, params: (string | number | null)[] = []): T | null {
   const st = db.prepare(sql);
   try {
     st.bind(params);
@@ -75,7 +93,7 @@ function one<T>(sql: string, params: (string | number)[]): T | null {
   }
 }
 
-function all<T>(sql: string, params: (string | number)[] = []): T[] {
+export function all<T>(sql: string, params: (string | number)[] = []): T[] {
   const st = db.prepare(sql);
   const rows: T[] = [];
   try {
@@ -85,6 +103,12 @@ function all<T>(sql: string, params: (string | number)[] = []): T[] {
     st.free();
   }
   return rows;
+}
+
+/** Upis (INSERT/UPDATE/DELETE) uz odloženo snimanje na disk. */
+export function run(sql: string, params: (string | number | null)[] = []): void {
+  db.run(sql, params);
+  persist();
 }
 
 /** Upiši igrača (ili osveži ime). Vraća true ako je nov. */

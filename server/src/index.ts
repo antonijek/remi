@@ -7,6 +7,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import { initDb, flushPersist, topPlayers, recordVisit } from './db.js';
 import { adminRouter } from './admin.js';
 import { registerSeo } from './seo.js';
+import { feedbackRouter } from './feedback.js';
+import { initPush } from './push.js';
 import { authRouter } from './auth.js';
 import { registerSocketHandlers } from './socket.js';
 import { allRooms, loadPersistedRooms, removeAbandonedRooms, status } from './rooms.js';
@@ -19,13 +21,14 @@ const PROJECT_ROOT = path.resolve(import.meta.dirname, '../..');
 // Javno je SAMO ono što treba pregledaču — nikad server/ (baza, .env), docs/, alati, izvorni kod.
 const PUBLIC = new RegExp('^/(?:' + [
   String.raw`remi\.html`, String.raw`pravila\.html`, String.raw`app\.js`, String.raw`online\.js`, String.raw`remi\.css`,
-  String.raw`sw\.js`, String.raw`admin\.html`, String.raw`admin\.js`, String.raw`manifest\.json`, String.raw`robots\.txt`, String.raw`sitemap\.xml`,
+  String.raw`sw\.js`, String.raw`admin\.html`, String.raw`admin(?:-[a-z]+)?\.js`, String.raw`push-sw\.js`, String.raw`manifest\.json`, String.raw`robots\.txt`, String.raw`sitemap\.xml`,
   String.raw`ui/[a-z-]+\.js`, String.raw`engine/dist/[a-z]+\.js`,
   String.raw`icons/(?:icon\.svg|icon-[a-z0-9-]+\.png|og-image\.jpg)`, String.raw`icons/cards/[0-9A-Za-z-]+\.webp`,
 ].join('|') + ')?$');
 
 async function main(): Promise<void> {
   await initDb();
+  initPush();
   const restored = loadPersistedRooms();
   if (restored.length) console.log(`[STARTUP] Vraćeno soba: ${restored.length}`);
 
@@ -59,6 +62,7 @@ async function main(): Promise<void> {
     if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v)) recordVisit(v);
     res.status(204).end();
   });
+  app.use('/api/feedback', feedbackRouter);
   app.use('/api/admin', adminRouter);
 
   const httpServer = http.createServer(app);

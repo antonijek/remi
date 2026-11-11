@@ -61,6 +61,7 @@ export function initOnline(hooks) {
     get active() { return Boolean(shown); },
     get waiting() { return sent; },
     view: () => shown,
+    token: () => token,
     room: () => room,
     open() { wanted = true; token ? connect() : showLogin(); },
     act(action) { sent = true; socket?.emit('game:play', action); },

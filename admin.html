@@ -14,6 +14,14 @@
     .admin .result .btn { color: var(--dialog-ink); border-color: rgba(0, 0, 0, .2); padding: 4px 10px; }
     .admin a { color: var(--accent); }
     .admin table { width: 100%; border-collapse: collapse; }
+    .push-card { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+    .fb-item { background: var(--dialog-bg); color: var(--dialog-ink); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+    .fb-item.unread { border-left: 4px solid var(--accent); }
+    .fb-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .fb-head .btn { color: var(--dialog-ink); border-color: rgba(0, 0, 0, .2); padding: 4px 10px; }
+    .fb-meta { opacity: .7; margin-right: auto; }
+    .fb-new { font-weight: 700; }
+    .fb-text { white-space: pre-wrap; margin: 8px 0 0; }
     .admin th, .admin td { padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(127, 127, 127, .25); }
   </style>
 </head>
@@ -26,7 +34,15 @@
       <button class="btn" data-tab="players" id="tabPlayers">Igrači</button>
       <button class="btn" data-tab="rooms" id="tabRooms">Sobe uživo</button>
       <button class="btn" data-tab="matches" id="tabMatches">Mečevi</button>
+      <button class="btn" data-tab="feedback" id="tabFeedback">Poruke<span id="feedbackBadge"></span></button>
       <button class="btn ghost" id="refreshBtn">Osveži</button>
+    </div>
+    <div class="push-card">
+      <b>Obaveštenja na telefonu</b>
+      <span id="pushStatus"></span>
+      <button class="btn primary" id="pushOn" type="button">Uključi obaveštenja</button>
+      <button class="btn" id="pushTest" type="button" hidden>Pošalji probno</button>
+      <button class="btn ghost" id="pushOff" type="button" hidden>Isključi</button>
     </div>
     <p id="msg" class="lobby-msg" role="alert" hidden></p>
     <div id="content"></div>

@@ -121,7 +121,8 @@ dialog { border: 0; border-radius: 14px; padding: 20px; background: var(--dialog
 dialog::backdrop { background: rgba(0,0,0,.55); }
 dialog h2 { margin-top: 0; }
 dialog label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
-dialog select { font: inherit; padding: 8px; border-radius: 8px; }
+dialog select, dialog textarea, dialog input { font: inherit; padding: 8px; border-radius: 8px; }
+dialog textarea { resize: vertical; }
 .dialog-buttons { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .result { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .result th, .result td { padding: 5px 7px; text-align: right; border-bottom: 1px solid rgba(127,127,127,.25); }

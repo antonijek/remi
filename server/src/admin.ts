@@ -8,15 +8,22 @@ import { adminOverview, adminPlayers, recentMatches } from './db.js';
 import { allRooms, removeRoom, seatIndexes, status } from './rooms.js';
 import { listOnlineUsers } from './presence.js';
 import { viewFor } from './game.js';
+import { feedbackAdminRouter, feedbackUnread } from './feedback.js';
+import { dryRunLog, notifyOwner, pushCount, pushPublicKey, removePushSub, savePushSub } from './push.js';
 
 export const adminRouter = Router();
 
-async function onlyAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+interface AdminRequest extends Request {
+  adminId?: number;
+}
+
+async function onlyAdmin(req: AdminRequest, res: Response, next: NextFunction): Promise<void> {
   const token = String(req.headers.authorization ?? '').replace(/^Bearer /, '');
   try {
     const me = token ? await fetchMe(token) : null;
     if (!me) return void res.status(401).json({ error: 'Prijavite se u igri (🌐), pa otvorite admin ponovo.' });
     if (!me.is_admin) return void res.status(403).json({ error: 'Ovaj nalog nema admin prava.' });
+    req.adminId = me.id;
     next();
   } catch (e) {
     console.error('[admin] provera naloga nije uspela:', e);
@@ -30,6 +37,7 @@ adminRouter.get('/overview', (_req, res) => {
   const rooms = allRooms();
   res.json({
     ...adminOverview(),
+    feedbackUnread: feedbackUnread(),
     online: listOnlineUsers(),
     rooms: { waiting: rooms.filter(r => status(r) === 'WAITING').length, playing: rooms.filter(r => status(r) === 'PLAYING').length },
   });
@@ -68,3 +76,20 @@ adminRouter.post('/rooms/:code/close', (req, res) => {
 });
 
 adminRouter.get('/matches', (_req, res) => res.json({ matches: recentMatches(50) }));
+
+adminRouter.use('/feedback', feedbackAdminRouter);
+
+// obaveštenja vlasniku na telefon (push.ts): pretplata ovog pregledača i probno slanje
+adminRouter.get('/push', (req: AdminRequest, res) => res.json({ publicKey: pushPublicKey(), devices: pushCount(req.adminId!) }));
+adminRouter.post('/push/subscribe', (req: AdminRequest, res) => {
+  if (!savePushSub(req.adminId!, req.body?.subscription)) return void res.status(400).json({ error: 'Neispravna pretplata.' });
+  res.json({ ok: true, devices: pushCount(req.adminId!) });
+});
+adminRouter.post('/push/unsubscribe', (req: AdminRequest, res) => {
+  removePushSub(req.adminId!, req.body?.endpoint);
+  res.json({ ok: true, devices: pushCount(req.adminId!) });
+});
+adminRouter.post('/push/test', async (_req, res) => {
+  res.json({ sent: await notifyOwner('Remi: probno obaveštenje', 'Radi! Ovako će ti javljati kad neko pošalje poruku.') });
+});
+if (process.env.PUSH_DRY_RUN) adminRouter.get('/push/sent', (_req, res) => res.json({ sent: dryRunLog }));

@@ -97,6 +97,17 @@
     </div>
   </section>
 
+  <dialog id="feedbackDlg">
+    <h2>Pohvale i primedbe</h2>
+    <form id="feedbackForm">
+      <label>Poruka<textarea id="feedbackText" required maxlength="1000" rows="5"></textarea></label>
+      <label id="feedbackEmailRow">Vaš email, ako želite odgovor (nije obavezno)<input id="feedbackEmail" type="email" maxlength="254" autocomplete="email"></label>
+      <p id="feedbackMsg" class="note" role="status"></p>
+      <p id="feedbackError" class="error" role="alert"></p>
+      <div class="dialog-buttons"><button id="feedbackSend" class="btn primary" type="submit">Pošalji</button><button id="feedbackClose" class="btn ghost" type="button">Zatvori</button></div>
+    </form>
+  </dialog>
+
   <dialog id="chatDialog">
     <h2>Poruke</h2>
     <ul id="chatList" class="chat-list"></ul>
@@ -145,6 +156,7 @@
       <button id="newGameBtn" class="btn primary">Nova igra</button>
       <button id="soundBtn" class="btn"></button>
       <a class="btn" href="./pravila.html">Pravila</a>
+      <button id="feedbackMenuBtn" class="btn" type="button">✉️ Pohvale i primedbe</button>
       <button id="leaveOnlineBtn" class="btn" hidden>Napusti online igru</button>
       <button id="closeMenuBtn" class="btn">Zatvori</button>
     </div>

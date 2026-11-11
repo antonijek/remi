@@ -34,7 +34,7 @@ before(async () => {
   server = spawn(process.execPath, ['dist/index.js'], {
     env: {
       ...process.env, PORT: String(PORT), AUTH_URL: `http://127.0.0.1:${AUTH_PORT}`, JWT_SECRET: SECRET,
-      DB_PATH: dbPath, AI_DELAY_MS: '5', OFFLINE_GRACE_MS: '300', NEXT_DEAL_MS: '50',
+      DB_PATH: dbPath, PUSH_DRY_RUN: '1', AI_DELAY_MS: '5', OFFLINE_GRACE_MS: '300', NEXT_DEAL_MS: '50',
     },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
@@ -88,7 +88,7 @@ function autoplay(c) {
 }
 
 test('statika: javni fajlovi da, server i izvorni kod ne', async () => {
-  for (const [p, code] of [['/', 200], ['/remi.html', 200], ['/engine/dist/game.js', 200], ['/icons/cards/10D.webp', 200],
+  for (const [p, code] of [['/', 200], ['/remi.html', 200], ['/engine/dist/game.js', 200], ['/icons/cards/10D.webp', 200], ['/push-sw.js', 200], ['/admin-push.js', 200], ['/admin-feedback.js', 200], ['/ui/feedback.js', 200],
     ['/server/dist/index.js', 404], ['/server/remi.db', 404], ['/.env', 404], ['/engine/src/game.ts', 404], ['/README.md', 404]]) {
     const res = await fetch(URL + p);
     assert.equal(res.status, code, p);
@@ -176,4 +176,29 @@ test('admin: samo admin nalog vidi pregled, igrače, sobe i mečeve; brojač pos
   const ov2 = await (await get('/overview', 9)).json();
   assert.equal(ov2.today.visitors, 1, 'neispravan id se ne broji');
   assert.equal((await fetch(URL + '/api/admin/rooms/NEMA1/close', { method: 'POST', headers: { Authorization: 'Bearer ' + jwt.sign({ userId: 9 }, SECRET) } })).status, 404);
+});
+
+test('pohvale i primedbe: slanje, provere, obaveštenje vlasniku, admin spisak, ograničenje', async () => {
+  const auth = userId => ({ Authorization: 'Bearer ' + jwt.sign({ userId }, SECRET) });
+  const post = (body, userId) => fetch(URL + '/api/feedback', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(userId ? auth(userId) : {}) }, body: JSON.stringify(body),
+  });
+  const adminGet = p => fetch(URL + '/api/admin' + p, { headers: auth(9) }).then(r => r.json());
+  assert.equal((await post({ text: '   ' })).status, 400); // prazna poruka (broji se u ograničenje)
+  assert.equal((await post({ text: ['Odlična igra!', '', '', 'Samo pozadina je tamna.'].join(String.fromCharCode(10)) }, 1)).status, 200);
+  assert.equal((await post({ text: 'Šta sa džokerom?', email: 'neko@primer.rs' })).status, 200);
+  assert.equal((await post({ text: 'četvrta u satu' }, 1)).status, 429);
+  assert.equal((await fetch(URL + '/api/admin/feedback', { headers: auth(1) })).status, 403);
+  const { messages, unread } = await adminGet('/feedback');
+  assert.equal(unread, 2);
+  const byName = messages.find(m => m.name === 'Pera');
+  assert.equal(byName.text, ['Odlična igra!', '', 'Samo pozadina je tamna.'].join(String.fromCharCode(10)), 'višak praznih redova se skida');
+  assert.equal(messages.find(m => m.email === 'neko@primer.rs').name, null);
+  const sent = (await adminGet('/push/sent')).sent;
+  assert.ok(sent.some(s => s.body.startsWith('Pera: Odlična igra!')), 'vlasnik dobija obaveštenje');
+  const read = await fetch(URL + '/api/admin/feedback/' + byName.id + '/read', { method: 'POST', headers: { ...auth(9), 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal((await read.json()).unread, 1);
+  const del = await fetch(URL + '/api/admin/feedback/' + byName.id, { method: 'DELETE', headers: auth(9) });
+  assert.equal((await del.json()).unread, 1);
+  assert.equal((await adminGet('/feedback')).messages.length, 1);
 });
