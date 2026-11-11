@@ -11,6 +11,8 @@ import { renderActions } from './ui/actions.js';
 import { fillDealEnd, renderSheet } from './ui/deal-end.js';
 import { loadGame, saveGame } from './ui/storage.js';
 import { toast } from './ui/toast.js';
+import { playSound, setSoundOn, soundOn } from './ui/sound.js';
+import { resetSounds, soundsFor } from './ui/sound-events.js';
 import { countVisit } from './ui/visit.js';
 import { initOnline } from './online.js';
 
@@ -37,6 +39,7 @@ function newGame() {
   if (online?.active) { toast('Prvo napustite online igru (☰ → Napusti online igru).'); return; }
   clearTimeout(timer);
   game = new RemiGame({ players });
+  resetSounds();
   resetTurnUi();
   save();
   render();
@@ -76,6 +79,7 @@ function render() {
   renderHand(v, ui, handlers);
   // u igri sa ljudima nema pomoći računara
   renderActions(v, ui, online?.active ? { ...handlers, suggest: null } : handlers);
+  soundsFor(v, { online: Boolean(online?.active) });
 }
 
 // ---------- potezi čoveka ----------
@@ -207,6 +211,15 @@ $('menuBtn').addEventListener('click', () => {
   $('leaveOnlineBtn').hidden = !online?.active;
   $('menu').showModal();
 });
+function showSoundBtn() {
+  $('soundBtn').textContent = soundOn() ? '🔊 Zvuk: uključen' : '🔇 Zvuk: isključen';
+}
+$('soundBtn').addEventListener('click', () => {
+  if (!setSoundOn(!soundOn())) toast('Izbor zvuka se ne može zapamtiti u ovom pregledaču.');
+  showSoundBtn();
+  playSound('card');
+});
+showSoundBtn();
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
 $('playersSel').addEventListener('change', e => { players = Number(e.target.value); });
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newGame(); });
@@ -220,10 +233,11 @@ online = initOnline({
   render,
   toast,
   setNames: null,
-  enter: () => { clearTimeout(timer); resetTurnUi(); },
+  enter: () => { clearTimeout(timer); resetTurnUi(); resetSounds(); },
   exit: () => {
     if ($('dealEnd').open) $('dealEnd').close();
     resetTurnUi();
+    resetSounds();
     render();
     step();
   },
