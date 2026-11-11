@@ -15,6 +15,7 @@ import { playSound, setSoundOn, soundOn } from './ui/sound.js';
 import { resetSounds, soundsFor } from './ui/sound-events.js';
 import { countVisit } from './ui/visit.js';
 import { initFeedback } from './ui/feedback.js';
+import { initInstall } from './ui/install.js';
 import { initOnline } from './online.js';
 
 const FAST = new URLSearchParams(location.search).has('fast');
@@ -274,6 +275,7 @@ if (saved) {
 
 countVisit('remi');
 initFeedback({ token: () => online.token() });
+initInstall();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(e => console.error('Rad bez interneta nije uključen:', e));

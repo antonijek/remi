@@ -267,3 +267,11 @@ ol.list { list-style: decimal inside; }
   position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px;
   background: var(--av1); color: var(--ink); font-size: .7rem; font-weight: 700; line-height: 18px; text-align: center;
 }
+
+/* predlog instalacije na telefonu (ui/install.js) */
+.install { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 8px 0; border-radius: 12px; border: 1px solid var(--accent); background: rgba(127, 127, 127, .12); }
+.install[hidden] { display: none; }
+.install-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.install-txt span { font-size: .88rem; opacity: .85; }
+.install-x { flex: none; align-self: flex-start; width: 28px; height: 28px; padding: 0; border-radius: 50%; cursor: pointer; border: 1px solid rgba(127, 127, 127, .5); background: transparent; color: inherit; }
+.install .btn { white-space: nowrap; color: var(--accent-ink); }
