@@ -16,6 +16,7 @@ import { resetSounds, soundsFor } from './ui/sound-events.js';
 import { countVisit } from './ui/visit.js';
 import { initFeedback } from './ui/feedback.js';
 import { initInstall } from './ui/install.js';
+import { initAvatar } from './ui/avatar.js';
 import { initOnline } from './online.js';
 
 const FAST = new URLSearchParams(location.search).has('fast');
@@ -25,6 +26,7 @@ const $ = id => document.getElementById(id);
 let game;
 let players = 4;
 let timer = null;
+let refreshAvatar = () => undefined;
 let online = null; // dok je online.active, sto crta stanje sa servera
 const ui = { selected: new Set(), staged: [], sortMode: 'suit', freshId: null, locked: false };
 
@@ -233,6 +235,7 @@ window.addEventListener('resize', () => render());
 
 online = initOnline({
   render,
+  onConnect: () => refreshAvatar(),
   toast,
   setNames: null,
   enter: () => { clearTimeout(timer); resetTurnUi(); resetSounds(); },
@@ -276,6 +279,7 @@ if (saved) {
 countVisit('remi');
 initFeedback({ token: () => online.token() });
 initInstall();
+refreshAvatar = initAvatar({ token: () => online.token(), name: () => online.me()?.name, changed: render });
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(e => console.error('Rad bez interneta nije uključen:', e));

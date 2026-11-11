@@ -202,3 +202,31 @@ test('pohvale i primedbe: slanje, provere, obaveštenje vlasniku, admin spisak, 
   assert.equal((await del.json()).unread, 1);
   assert.equal((await adminGet('/feedback')).messages.length, 1);
 });
+
+test('slika igrača: slanje, provere, prikaz, admin uklanjanje', async () => {
+  const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const auth = userId => ({ Authorization: 'Bearer ' + jwt.sign({ userId }, SECRET) });
+  const send = (image, userId) => fetch(URL + '/api/avatar', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(userId ? auth(userId) : {}) }, body: JSON.stringify({ image }),
+  });
+  assert.equal((await send(PNG)).status, 401, 'bez prijave nema slike');
+  assert.equal((await send('data:image/png;base64,AAAA', 2)).status, 400, 'nije prava slika');
+  assert.equal((await send('<script>', 2)).status, 400);
+  const ok = await send(PNG, 2);
+  assert.equal(ok.status, 200);
+  const { url } = await ok.json();
+  assert.ok(url.startsWith('api/avatar/2?v='), 'adresa nosi verziju');
+  const img = await fetch(URL + '/' + url);
+  assert.equal(img.status, 200);
+  assert.equal(img.headers.get('content-type'), 'image/png');
+  assert.equal((await fetch(URL + '/api/avatar/12345')).status, 404);
+  assert.equal((await (await fetch(URL + '/api/avatar/mine', { headers: auth(2) })).json()).url, url);
+  const players = (await (await fetch(URL + '/api/admin/players', { headers: auth(9) })).json()).players;
+  assert.ok(players.find(p => p.user_id === 2).avatar_v, 'admin vidi da slika postoji');
+  const sent = (await (await fetch(URL + '/api/admin/push/sent', { headers: auth(9) })).json()).sent;
+  assert.ok(sent.some(s => s.body.startsWith('Mika')), 'vlasnik dobija obaveštenje o novoj slici');
+  assert.equal((await fetch(URL + '/api/admin/players/2/avatar', { method: 'DELETE', headers: auth(2) })).status, 403);
+  assert.equal((await fetch(URL + '/api/admin/players/2/avatar', { method: 'DELETE', headers: auth(9) })).status, 200);
+  assert.equal((await fetch(URL + '/' + url)).status, 404, 'posle uklanjanja nema slike');
+  assert.equal((await (await fetch(URL + '/api/avatar/mine', { headers: auth(2) })).json()).url, null);
+});

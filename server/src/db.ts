@@ -22,6 +22,9 @@ export async function initDb(): Promise<void> {
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     last_seen TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+  // slika igrača (avatars.ts): verzija = vreme postavljanja; NULL = nema slike (veliko slovo)
+  const cols = (db.exec('PRAGMA table_info(remi_players)')[0]?.values ?? []).map(r => String(r[1]));
+  if (!cols.includes('avatar_v')) db.run('ALTER TABLE remi_players ADD COLUMN avatar_v INTEGER');
   db.run(`CREATE TABLE IF NOT EXISTS match_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     room_code TEXT NOT NULL,
@@ -200,8 +203,8 @@ export function adminOverview() {
   };
 }
 
-export function adminPlayers(): { user_id: number; name: string; rating: number; games_played: number; last_seen: string }[] {
-  return all('SELECT user_id, name, rating, games_played, last_seen FROM remi_players ORDER BY last_seen DESC LIMIT 300');
+export function adminPlayers(): { user_id: number; name: string; rating: number; games_played: number; last_seen: string; avatar_v: number | null }[] {
+  return all('SELECT user_id, name, rating, games_played, last_seen, avatar_v FROM remi_players ORDER BY last_seen DESC LIMIT 300');
 }
 
 export function recentMatches(limit = 50): { id: number; room_code: string; ended_at: string; players: number; rated: number; seats_json: string; scores_json: string; rating_deltas_json: string }[] {

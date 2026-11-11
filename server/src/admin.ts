@@ -8,6 +8,7 @@ import { adminOverview, adminPlayers, recentMatches } from './db.js';
 import { allRooms, removeRoom, seatIndexes, status } from './rooms.js';
 import { listOnlineUsers } from './presence.js';
 import { viewFor } from './game.js';
+import { removeAvatar } from './avatars.js';
 import { feedbackAdminRouter, feedbackUnread } from './feedback.js';
 import { dryRunLog, notifyOwner, pushCount, pushPublicKey, removePushSub, savePushSub } from './push.js';
 
@@ -44,6 +45,12 @@ adminRouter.get('/overview', (_req, res) => {
 });
 
 adminRouter.get('/players', (_req, res) => res.json({ players: adminPlayers() }));
+
+/** Ukloni neprikladnu sliku igrača (igrač dobija slovo umesto slike). */
+adminRouter.delete('/players/:id/avatar', (req, res) => {
+  removeAvatar(Number(req.params.id));
+  res.json({ ok: true });
+});
 
 adminRouter.get('/rooms', (_req, res) => {
   res.json({

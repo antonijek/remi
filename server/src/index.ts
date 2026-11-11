@@ -9,6 +9,7 @@ import { adminRouter } from './admin.js';
 import { registerSeo } from './seo.js';
 import { feedbackRouter } from './feedback.js';
 import { initPush } from './push.js';
+import { avatarRouter } from './avatars.js';
 import { authRouter } from './auth.js';
 import { registerSocketHandlers } from './socket.js';
 import { allRooms, loadPersistedRooms, removeAbandonedRooms, status } from './rooms.js';
@@ -63,6 +64,7 @@ async function main(): Promise<void> {
     res.status(204).end();
   });
   app.use('/api/feedback', feedbackRouter);
+  app.use('/api/avatar', avatarRouter);
   app.use('/api/admin', adminRouter);
 
   const httpServer = http.createServer(app);

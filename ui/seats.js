@@ -1,14 +1,19 @@
 // Mesta za stolom i pločice igrača (avatar, ime, otvoren, poeni, broj karata, delilac).
 
 import { backImg } from './cards.js';
+import { avatarEl, myAvatarUrl } from './avatar.js';
 
 export const ME = 0;
 const DEFAULT_NAMES = ['Vi', 'Milan', 'Jelena', 'Bora'];
 let roomNames = null; // online: imena iz sobe, po mestima na ekranu
+let roomAvatars = null; // online: adrese slika iz sobe, po mestima na ekranu
 
-export function setNames(names) {
+export function setNames(names, avatars = null) {
   roomNames = names;
+  roomAvatars = avatars;
 }
+
+const avatarOf = p => (p === ME ? myAvatarUrl() : roomAvatars?.[p] ?? null);
 
 export function playerName(p) {
   return roomNames?.[p] ?? DEFAULT_NAMES[p];
@@ -40,7 +45,7 @@ function plate(v, p) {
   sub.append('poena ', el('b', '', v.scores[p]));
   if (p !== ME) sub.append(' · karata ', el('b', '', v.handCounts[p]));
   info.append(title, sub);
-  box.append(el('div', `avatar p${p}`, name[0]), info);
+  box.append(avatarEl(avatarOf(p), name, `p${p}`), info);
   if (v.dealer === p) {
     const chip = el('span', 'dealer-chip', 'D');
     chip.title = 'Delio';

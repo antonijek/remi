@@ -4,6 +4,7 @@
 
 import { rotateView } from './ui/rotate.js';
 import { setNames } from './ui/seats.js';
+import { forgetAvatar } from './ui/avatar.js';
 import * as lobby from './ui/online-lobby.js';
 
 const TOKEN_KEY = 'remi_token';
@@ -62,6 +63,7 @@ export function initOnline(hooks) {
     get waiting() { return sent; },
     view: () => shown,
     token: () => token,
+    me: () => me,
     room: () => room,
     open() { wanted = true; token ? connect() : showLogin(); },
     act(action) { sent = true; socket?.emit('game:play', action); },
@@ -105,6 +107,7 @@ export function initOnline(hooks) {
   function logout() {
     token = null;
     saveToken(null);
+    forgetAvatar();
     socket?.disconnect();
     socket = null;
     showLogin('Odjavljeni ste.');
@@ -126,6 +129,7 @@ export function initOnline(hooks) {
       try {
         const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
         me = (await res.json()).user ?? me;
+        hooks.onConnect?.();
         if (!$('lobbyPanel').hidden) refreshLobby();
       } catch (e) {
         lobby.lobbyMessage(`Nalog nije učitan (${e.message}).`);
@@ -259,6 +263,11 @@ export function initOnline(hooks) {
     });
   }
 
+  function avatarsFor(s) {
+    const n = s.players;
+    return Array.from({ length: n }, (_, l) => (l === 0 ? null : s.seats[(l + s.mySeat) % n].avatar ?? null));
+  }
+
   function step() {
     const s = queue.shift();
     if (!s) { busy = false; return; }
@@ -283,7 +292,7 @@ export function initOnline(hooks) {
     stopRefresh();
     lobby.hideLobby();
     const v = rotateView(s.view, s.mySeat);
-    setNames(namesFor(s));
+    setNames(namesFor(s), avatarsFor(s));
     apply(v);
     step();
   }

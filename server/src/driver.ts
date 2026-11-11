@@ -6,6 +6,7 @@ import type { Server } from 'socket.io';
 import { applyRatingChange, countGame, logMatch } from './db.js';
 import { history, nextDeal, phase, playAi, sideOf, sideScores, turn, viewFor } from './game.js';
 import { ratingDeltas } from './rating.js';
+import { avatarUrl } from './avatars.js';
 import { persistRoom, seatIndexes, status } from './rooms.js';
 import type { Room } from './rooms.js';
 
@@ -27,6 +28,7 @@ export function buildState(room: Room, seat: number) {
     seats: seatIndexes(room).map(s => ({
       kind: room.seats[s].kind,
       name: room.seats[s].name,
+      avatar: avatarUrl(room.seats[s].userId),
       rating: room.seats[s].rating,
       connected: room.seats[s].kind === 'human' ? room.sockets[s] !== null : null,
     })),

@@ -80,7 +80,18 @@ async function overview() {
 
 async function players() {
   const d = await api('/players');
-  return rowsTable(['ime', 'rejting', 'mečeva', 'poslednji put'], d.players.map(p => [p.name, p.rating, p.games_played, p.last_seen]));
+  return rowsTable(['ime', 'rejting', 'mečeva', 'poslednji put', 'slika'], d.players.map(p => {
+    if (!p.avatar_v) return [p.name, p.rating, p.games_played, p.last_seen, '—'];
+    const img = Object.assign(el('img'), { src: `/api/avatar/${p.user_id}?v=${p.avatar_v}`, alt: '', width: 40, height: 40 });
+    const remove = el('button', 'Ukloni', 'btn');
+    remove.addEventListener('click', async () => {
+      if (!confirm(`Ukloniti sliku igrača ${p.name}?`)) return;
+      try { await api(`/players/${p.user_id}/avatar`, { method: 'DELETE' }); load(); } catch (e) { showError(e.message); }
+    });
+    const box = el('span');
+    box.append(img, ' ', remove);
+    return [p.name, p.rating, p.games_played, p.last_seen, box];
+  }));
 }
 
 async function rooms() {

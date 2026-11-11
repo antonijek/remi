@@ -59,7 +59,7 @@
       </form>
 
       <div id="lobbyPanel" class="panel" hidden>
-        <p>Zdravo, <b id="meName"></b> · rejting <b id="meRating">1000</b></p>
+        <p>Zdravo, <b id="meName"></b> · rejting <b id="meRating">1000</b> <button id="avatarBtn" class="btn ghost" type="button">📷 Slika</button></p>
         <button id="quickBtn" class="btn primary">⚡ Brza igra</button>
         <div class="row">
           <select id="newRoomPlayers" aria-label="Broj igrača">
@@ -107,6 +107,14 @@
       <p id="feedbackError" class="error" role="alert"></p>
       <div class="dialog-buttons"><button id="feedbackSend" class="btn primary" type="submit">Pošalji</button><button id="feedbackClose" class="btn ghost" type="button">Zatvori</button></div>
     </form>
+  </dialog>
+
+  <dialog id="avatarDlg">
+    <h2>Vaša slika</h2>
+    <div id="avatarPreview" class="avatar-preview"></div>
+    <label class="btn primary file-btn">Izaberi sliku<input id="avatarFile" type="file" accept="image/*" hidden></label>
+    <p id="avatarError" class="error" role="status"></p>
+    <div class="dialog-buttons"><button id="avatarRemove" class="btn" type="button" hidden>Ukloni sliku</button><button id="avatarClose" class="btn ghost" type="button">Zatvori</button></div>
   </dialog>
 
   <dialog id="chatDialog">
