@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { RemiGame, RemiError } from '../src/game.js';
 import { cardFromId, createDeck } from '../src/cards.js';
 import { chooseAction, bestMelds } from '../src/ai.js';
+import { applyAction } from '../src/actions.js';
 import { makeRng } from '../src/cards.js';
 import type { RemiState } from '../src/types.js';
 
@@ -195,4 +196,26 @@ test('AI vs AI: mečevi se završavaju bez nelegalnih poteza (2, 3 i 4 igrača)'
       assert.ok(s.history.every(h => h.winner === null || h.points[h.winner] < 0));
     }
   }
+});
+
+test('dnevni izazov: ista partija i isti računar daju isti rezultat (nivo hard ne koristi nasumičnost)', () => {
+  const play = () => {
+    const realRandom = Math.random;
+    Math.random = () => { throw new Error('Math.random u izazovu'); };
+    try {
+      const g = new RemiGame({ players: 2, seed: 20261111 });
+      // čovek (mesto 0) igra isto što i računar; važno je da su špil i odluke deterministički
+      let guard = 0;
+      while (g.getState().phase !== 'DEAL_END' && g.getState().phase !== 'MATCH_END' && guard++ < 2000) {
+        const s = g.getState();
+        applyAction(g, s.turn, chooseAction(g.getPlayerView(s.turn), 'hard'));
+      }
+      return g.getState().history.at(-1);
+    } finally {
+      Math.random = realRandom;
+    }
+  };
+  const a = play();
+  assert.ok(a, 'partija je završena');
+  assert.deepEqual(play(), a);
 });

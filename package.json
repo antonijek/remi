@@ -8,6 +8,7 @@
     "build": "cd engine && npm run build",
     "test": "cd engine && npm test",
     "serve": "node tools/serve.js",
+    "test:daily": "node tools/daily-test.mjs",
     "test:ui": "node tools/browser-smoke-test.mjs",
     "test:online": "node tools/online-ui-test.mjs",
     "deploy": "sh tools/deploy.sh",

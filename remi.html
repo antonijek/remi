@@ -164,6 +164,7 @@
     </label>
     <div class="dialog-buttons">
       <button id="newGameBtn" class="btn primary">Nova igra</button>
+      <button id="dailyBtn" class="btn" type="button">📅 Dnevni izazov</button>
       <button id="soundBtn" class="btn"></button>
       <a class="btn" href="./pravila.html">Pravila</a>
       <button id="feedbackMenuBtn" class="btn" type="button">✉️ Pohvale i primedbe</button>
@@ -180,7 +181,17 @@
     </table>
     <p id="dealEndNote" class="note"></p>
     <div class="dialog-buttons">
+      <button id="shareBtn" class="btn" type="button" hidden>Podeli rezultat</button>
       <button id="nextDealBtn" class="btn primary">Sledeća partija</button>
+    </div>
+  </dialog>
+
+  <dialog id="dailyDone">
+    <h2>Dnevni izazov — već odigrano</h2>
+    <p id="dailyDoneText"></p>
+    <div class="dialog-buttons">
+      <button id="dailyShareBtn" class="btn primary" type="button">Podeli rezultat</button>
+      <button id="closeDailyBtn" class="btn ghost" type="button">Zatvori</button>
     </div>
   </dialog>
 

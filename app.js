@@ -9,7 +9,9 @@ import { renderMelds, renderPiles, renderStaged } from './ui/table.js';
 import { renderHand } from './ui/hand.js';
 import { renderActions } from './ui/actions.js';
 import { fillDealEnd, renderSheet } from './ui/deal-end.js';
-import { loadGame, saveGame } from './ui/storage.js';
+import { SAVE_KEY, loadGame, saveGame } from './ui/storage.js';
+import * as daily from './ui/daily.js';
+import { fillDailyEnd, showDailyDone } from './ui/daily-ui.js';
 import { toast } from './ui/toast.js';
 import { playSound, setSoundOn, soundOn } from './ui/sound.js';
 import { resetSounds, soundsFor } from './ui/sound-events.js';
@@ -26,11 +28,13 @@ const $ = id => document.getElementById(id);
 let game;
 let players = 4;
 let timer = null;
+let slot = SAVE_KEY;  // gde se čuva partija (obična ili dnevni izazov)
+let dailyKey = null;  // datum izazova, ili null u običnoj igri
 let refreshAvatar = () => undefined;
 let online = null; // dok je online.active, sto crta stanje sa servera
 const ui = { selected: new Set(), staged: [], sortMode: 'suit', freshId: null, locked: false };
 
-const save = () => saveGame(game, players, toast);
+const save = () => saveGame(game, game.getState().playerCount, toast, slot);
 const view = () => (online?.active ? online.view() : game.getPlayerView(ME));
 
 function resetTurnUi() {
@@ -42,10 +46,43 @@ function resetTurnUi() {
 function newGame() {
   if (online?.active) { toast('Prvo napustite online igru (☰ → Napusti online igru).'); return; }
   clearTimeout(timer);
+  slot = SAVE_KEY;
+  dailyKey = null;
   game = new RemiGame({ players });
   resetSounds();
   resetTurnUi();
   save();
+  render();
+  step();
+}
+
+/** Dnevni izazov: ista partija za sve (seed = datum), 1 na 1, jedan pokušaj dnevno. */
+function startDaily() {
+  if (online?.active) { toast('Prvo napustite online igru (☰ → Napusti online igru).'); return; }
+  const key = daily.todayKey();
+  const results = daily.loadResults(toast);
+  if (results[key]) { showDailyDone(key, results, toast); return; }
+  clearTimeout(timer);
+  slot = daily.stateSlot(key, toast);
+  dailyKey = key;
+  game = loadGame(toast, slot)?.game ?? new RemiGame({ players: 2, seed: daily.seedFor(key) });
+  resetSounds();
+  resetTurnUi();
+  save();
+  render();
+  step();
+}
+
+/** Posle izazova nazad na običnu partiju (sačuvanu ili novu). */
+function resumeNormal() {
+  clearTimeout(timer);
+  slot = SAVE_KEY;
+  dailyKey = null;
+  const saved = loadGame(toast);
+  if (!saved) { newGame(); return; }
+  ({ game, players } = saved);
+  resetSounds();
+  resetTurnUi();
   render();
   step();
 }
@@ -74,7 +111,8 @@ const handlers = {
 function render() {
   const v = view();
   ui.locked = Boolean(online?.waiting);
-  const where = online?.active ? `Soba ${online.room().code} · partija ${v.dealNo}` : `Partija ${v.dealNo}`;
+  const where = online?.active ? `Soba ${online.room().code} · partija ${v.dealNo}`
+    : dailyKey ? `Dnevni izazov ${daily.dayLabel(dailyKey)}` : `Partija ${v.dealNo}`;
   $('dealInfo').textContent = `${where} · deli ${playerName(v.dealer)}`;
   renderSeats(v);
   renderPiles(v, ui, handlers);
@@ -188,7 +226,10 @@ function step() {
 }
 
 function showDealEnd() {
-  if (fillDealEnd(view()) && !$('dealEnd').open) $('dealEnd').showModal();
+  if (!fillDealEnd(view())) return;
+  $('shareBtn').hidden = !dailyKey;
+  if (dailyKey) fillDailyEnd(view(), dailyKey, toast);
+  if (!$('dealEnd').open) $('dealEnd').showModal();
 }
 
 // ---------- dugmad ----------
@@ -202,6 +243,7 @@ $('nextDealBtn').addEventListener('click', () => {
     return;
   }
   $('dealEnd').close();
+  if (dailyKey) { resumeNormal(); return; }
   if (game.getState().phase === 'MATCH_END') { newGame(); return; }
   game.nextDeal();
   resetTurnUi();
@@ -226,6 +268,8 @@ $('soundBtn').addEventListener('click', () => {
 showSoundBtn();
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
 $('playersSel').addEventListener('change', e => { players = Number(e.target.value); });
+$('dailyBtn').addEventListener('click', () => { $('menu').close(); startDaily(); });
+$('closeDailyBtn').addEventListener('click', () => $('dailyDone').close());
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newGame(); });
 $('leaveOnlineBtn').addEventListener('click', () => { $('menu').close(); online.leave(); });
 $('onlineBtn').addEventListener('click', () => online.open());
@@ -249,6 +293,7 @@ online = initOnline({
   newTurnState: () => { ui.selected.clear(); },
   dealEnd: (v, room) => {
     fillDealEnd(v);
+    $('shareBtn').hidden = true;
     const btn = $('nextDealBtn');
     btn.disabled = false;
     if (v.phase === 'MATCH_END') {
@@ -275,6 +320,8 @@ if (saved) {
 } else {
   newGame();
 }
+
+if (new URLSearchParams(location.search).has('izazov')) startDaily();
 
 countVisit('remi');
 initFeedback({ token: () => online.token() });
