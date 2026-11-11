@@ -44,3 +44,6 @@ Potvrđeno bez izmena: 15/14 karata, otvaranje 51 odjednom, uzeta karta sa gomil
 Nije uvedeno: „hand karta“ ispod sečenja, sahranjivanje džokera uz drugu kartu, suvi hand −280 ×4.
 
 Dopuna istog dana (otkriveno merenjem AI-ja): u dvoje meč do 501 nikad nije završavao (pobednik −40, gubitnik malo plaća, oba zbira idu u minus). Uvedeno pravilo sa zoki.com: meč traje svako po 4 deljenja u dvoje, po 3 u troje, po 2 u četvoro, ili do 501 — šta pre. Okretanje gomile bez mešanja ograničeno na 2 puta po partiji (inače bi se karte vrtele istim redom unedogled); posle toga partija bez pobednika.
+
+## Provera 2026-11-11
+Ponovo pročitano: remi51.rs, mycity.rs, zoki.com, Danubius (Kalući), igre.games. Uvedeno: remi iz ruke se poništava ako je igrač u istom potezu uzeo kartu sa gomile (Danubius) ili dopisivao na tuđe/svoje kombinacije posle otvaranja (remi51.rs, Danubius, igre.games). Ostaje otvoreno: zabrana otvaranja u prvom krugu (samo remi51.rs), džoker na komplet i dva džokera jedan do drugog u nizu (izvori se razilaze), „hand karta“, suvi remi.

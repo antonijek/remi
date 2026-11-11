@@ -121,6 +121,32 @@ test('remi iz ruke: −140, ostalima duplo', () => {
   assert.deepEqual(r.points, [-140, 200]); // neotvoren: 100 × 2
 });
 
+test('remi iz ruke se poništava dopisivanjem u potezu otvaranja', () => {
+  const s = base();
+  s.hands = [cards('10H1 JH1 QH1 KS1 KD1 KC1 KH1 5D1'), cards('9S1 2C1')];
+  const g = RemiGame.fromState(s);
+  const [run] = g.meld(0, [['10H1', 'JH1', 'QH1'], ['KS1', 'KD1', 'KC1']]);
+  g.layoff(0, run.id, ['KH1']);
+  g.discard(0, '5D1');
+  const r = g.getState().history.at(-1)!;
+  assert.equal(r.handRemi, false);
+  assert.deepEqual(r.points, [-40, 100]);
+});
+
+test('remi iz ruke se poništava uzimanjem sa gomile u istom potezu', () => {
+  const s = base();
+  s.phase = 'DRAW';
+  s.hands = [cards('10H1 JH1 KS1 KD1 KC1 5D1'), cards('9S1 2C1')];
+  s.discard = cards('QH1');
+  const g = RemiGame.fromState(s);
+  g.takeDiscard(0);
+  g.meld(0, [['10H1', 'JH1', 'QH1'], ['KS1', 'KD1', 'KC1']]);
+  g.discard(0, '5D1');
+  const r = g.getState().history.at(-1)!;
+  assert.equal(r.handRemi, false);
+  assert.deepEqual(r.points, [-40, 100]);
+});
+
 test('bestMelds nalazi otvaranje sa džokerom', () => {
   const plan = bestMelds(cards('10H1 JK1 QH1 KS1 KD1 KC1 2C1 5D1'));
   assert.ok(plan.points >= 60, `poeni ${plan.points}`);

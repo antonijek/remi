@@ -73,6 +73,8 @@ export interface RemiState {
   takenCard: CardId | null;
   /** Da li je igrač bio otvoren na početku ovog poteza (za "remi iz ruke"). */
   openedAtTurnStart: boolean;
+  /** Uzimanje sa gomile ili dopisivanje u ovom potezu poništava remi iz ruke. */
+  handVoided?: boolean;
   scores: number[];
   history: DealResult[];
   winners: number[];

@@ -147,6 +147,7 @@ export class RemiGame {
     // Pre otvaranja: uzeta karta MORA da uđe u otvaranje u ovom potezu.
     s.tookDiscard = s.opened[p] ? null : card.id;
     s.takenCard = card.id;
+    s.handVoided = true;
     s.pickups[p].push(card.id);
     s.phase = 'PLAY';
     s.lastAction = `take:${p}:${card.id}`;
@@ -164,6 +165,7 @@ export class RemiGame {
     s.pickups[p].pop();
     s.tookDiscard = null;
     s.takenCard = null;
+    s.handVoided = false;
     s.phase = 'DRAW';
   }
 
@@ -228,6 +230,7 @@ export class RemiGame {
     if (!ext) throw new RemiError('Te karte ne idu na tu kombinaciju');
     meld.cards = ext.cards;
     s.hands[p] = hand.filter(c => !cardIds.includes(c.id));
+    s.handVoided = true;
     s.lastAction = `layoff:${p}:${meldId}`;
   }
 
@@ -268,7 +271,7 @@ export class RemiGame {
     s.discardsBy[p].push(card.id);
     s.lastAction = `discard:${p}:${card.id}`;
     if (s.hands[p].length === 0) {
-      this.endDeal(p, !s.openedAtTurnStart);
+      this.endDeal(p, !s.openedAtTurnStart && !s.handVoided);
       return;
     }
     this.nextTurn();
@@ -309,6 +312,7 @@ export class RemiGame {
     s.discardsBy = Array.from({ length: n }, () => []);
     s.turn = starter;
     s.openedAtTurnStart = false;
+    s.handVoided = false;
     // igrač sa 15 karata počinje odbacivanjem
     s.phase = 'PLAY';
     s.lastAction = null;
@@ -319,6 +323,7 @@ export class RemiGame {
     s.turn = (s.turn + 1) % s.playerCount;
     s.tookDiscard = null;
     s.takenCard = null;
+    s.handVoided = false;
     s.openedAtTurnStart = s.opened[s.turn];
     s.phase = 'DRAW';
   }
