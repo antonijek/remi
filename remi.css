@@ -260,6 +260,7 @@ dialog textarea { resize: vertical; }
 ol.list { list-style: decimal inside; }
 .list li { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: rgba(127, 127, 127, .12); }
 .list li .btn { padding: 5px 10px; }
+.list li.mine { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .chat-list { list-style: none; margin: 0 0 10px; padding: 0; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 #chatBtn { position: relative; }
 .badge {

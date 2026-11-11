@@ -198,7 +198,7 @@ export function initOnline(hooks) {
       const invite = room?.status === 'WAITING' ? id => socket.emit('room:invite', { userId: id }) : null;
       lobby.renderOnlineUsers(users, me?.id, invite);
     });
-    fetch('/api/leaderboard').then(r => r.json()).then(d => lobby.renderTop(d.players ?? []))
+    fetch('/api/leaderboard').then(r => r.json()).then(d => lobby.renderTop(d.players ?? [], me?.id))
       .catch(e => console.warn('Rang lista nije učitana:', e));
   }
 

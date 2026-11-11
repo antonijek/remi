@@ -53,8 +53,13 @@ export function renderRooms(rooms, onJoin) {
   )), 'Nema otvorenih soba — napravite svoju ili kliknite „Brza igra“.');
 }
 
-export function renderTop(players) {
-  fill('topList', players.slice(0, 10).map(p => item(`${p.name} — ${p.rating}`)), 'Još niko nije odigrao rangiran meč.');
+/** Najboljih 10; vaš red je istaknut (myId = id prijavljenog igrača). */
+export function renderTop(players, myId) {
+  fill('topList', players.slice(0, 10).map(p => {
+    const li = item(`${p.name} — ${p.rating} (${p.games_played} mečeva)`);
+    if (p.user_id === myId) li.classList.add('mine');
+    return li;
+  }), 'Još niko nije odigrao rangiran meč.');
 }
 
 export function renderMe(me, rating) {

@@ -135,8 +135,8 @@ export function countGame(userId: number): void {
   persist();
 }
 
-export function topPlayers(limit: number): { name: string; rating: number; games_played: number }[] {
-  return all('SELECT name, rating, games_played FROM remi_players WHERE games_played > 0 ORDER BY rating DESC, games_played DESC LIMIT ?', [limit]);
+export function topPlayers(limit: number): { user_id: number; name: string; rating: number; games_played: number }[] {
+  return all('SELECT user_id, name, rating, games_played FROM remi_players WHERE games_played > 0 ORDER BY rating DESC, games_played DESC LIMIT ?', [limit]);
 }
 
 export function logMatch(m: {
