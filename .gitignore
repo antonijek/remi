@@ -9,3 +9,15 @@ server/.env
 server/dist/
 *.db
 *.db.tmp
+
+# Android aplikacija: build i APK nisu u git-u; ključ za potpis je van projekta (D:\Lora-android-kljuc)
+downloads/
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+*.idsig
+*.keystore
+*.jks

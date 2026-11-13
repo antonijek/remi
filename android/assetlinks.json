@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "online.igrajmo.remi",
+      "sha256_cert_fingerprints": ["09:83:58:11:55:12:51:D0:82:5B:26:01:68:94:04:2E:8D:7A:1D:29:5B:B3:81:02:D9:69:4C:93:BB:52:2F:86"]
+    }
+  }
+]

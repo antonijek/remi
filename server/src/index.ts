@@ -11,6 +11,7 @@ import { feedbackRouter } from './feedback.js';
 import { initPush } from './push.js';
 import { avatarRouter } from './avatars.js';
 import { leaguesRouter } from './leagues.js';
+import { androidAppRouter } from './androidApp.js';
 import { authRouter } from './auth.js';
 import { registerSocketHandlers } from './socket.js';
 import { allRooms, loadPersistedRooms, removeAbandonedRooms, status } from './rooms.js';
@@ -39,6 +40,7 @@ async function main(): Promise<void> {
   app.use(express.json());
   app.use(compression());
   registerSeo(app); // pre allowlist-e: ključ za IndexNow
+  app.use(androidAppRouter(PROJECT_ROOT)); // pre allowlist-e: assetlinks.json i remi.apk
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || PUBLIC.test(req.path)) return next();
     res.status(404).end();
