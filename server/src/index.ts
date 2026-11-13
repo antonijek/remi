@@ -23,7 +23,7 @@ const PROJECT_ROOT = path.resolve(import.meta.dirname, '../..');
 
 // Javno je SAMO ono što treba pregledaču — nikad server/ (baza, .env), docs/, alati, izvorni kod.
 const PUBLIC = new RegExp('^/(?:' + [
-  String.raw`remi\.html`, String.raw`pravila\.html`, String.raw`app\.js`, String.raw`online\.js`, String.raw`remi\.css`,
+  String.raw`remi\.html`, String.raw`pravila\.html`, String.raw`remi-(?:online|kombinacije|bodovanje)\.html`,String.raw`app\.js`, String.raw`online\.js`, String.raw`remi\.css`,
   String.raw`sw\.js`, String.raw`admin\.html`, String.raw`admin(?:-[a-z]+)?\.js`, String.raw`push-sw\.js`, String.raw`manifest\.json`, String.raw`robots\.txt`, String.raw`sitemap\.xml`,
   String.raw`ui/[a-z-]+\.js`, String.raw`engine/dist/[a-z]+\.js`,
   String.raw`icons/(?:icon\.svg|icon-[a-z0-9-]+\.png|og-image\.jpg)`, String.raw`icons/cards/[0-9A-Za-z-]+\.webp`,

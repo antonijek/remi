@@ -4,7 +4,7 @@
 
 const HOST = 'remi.igrajmo.online';
 const KEY = 'ef7665bf0ddc2a3e838db3474f3315dd';
-const urls = [`https://${HOST}/`, `https://${HOST}/pravila.html`];
+const urls = [`https://${HOST}/`, `https://${HOST}/pravila.html`, ...['remi-online','remi-kombinacije','remi-bodovanje'].map(p => `https://${HOST}/${p}.html`)];
 
 const res = await fetch('https://api.indexnow.org/indexnow', {
   method: 'POST',
